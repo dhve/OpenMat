@@ -1,0 +1,28 @@
+# Grammar conformance fixtures, v0.1 (specs/grammar.md section 8).
+# Format: input || canonical InputForm || LaTeX
+# Regenerate with: cargo run -p openmat-core --example conformance_dump
+# The conformance test parses column 1, checks its printed form equals
+# column 2, re-parses column 2 and checks expression equality (round trip),
+# and checks to_latex equals column 3.
+2 + 3 || 2 + 3 || 2 + 3
+x + y*z || x + y*z || x + y z
+-x^2 || -1*x^2 || -x^{2}
+(-x)^2 || (-1*x)^2 || \left(-x\right)^{2}
+a/b/c || a/(b*c) || \frac{a}{b c}
+2^3^2 || 2^3^2 || 2^{3^{2}}
+2 x || 2*x || 2 x
+c x[t] || c*x[t] || c x\left(t\right)
+3 Sin[t] || 3*Sin[t] || 3 \sin\left(t\right)
+2 (x + 1) || 2*(x + 1) || 2 \left(x + 1\right)
+f[x, y] || f[x, y] || f\left(x, y\right)
+{1, 2, 3} || {1, 2, 3} || \left\{1, 2, 3\right\}
+a == b || a == b || a = b
+a -> b || a -> b || a \to b
+x'[t] || x'[t] || x'\left(t\right)
+x''[t] || x''[t] || x''\left(t\right)
+1.5 || 1.5 || 1.5
+x/2 || x/2 || \frac{x}{2}
+(a + b)/c || (a + b)/c || \frac{\left(a + b\right)}{c}
+Sqrt[x] || Sqrt[x] || \sqrt{x}
+Sin[x]^2 + Cos[x]^2 || Sin[x]^2 + Cos[x]^2 || \sin\left(x\right)^{2} + \cos\left(x\right)^{2}
+x''[t] + c x'[t] + Sin[x[t]] == 0 || x''[t] + c*x'[t] + Sin[x[t]] == 0 || x''\left(t\right) + c x'\left(t\right) + \sin\left(x\left(t\right)\right) = 0

@@ -572,6 +572,8 @@ This is the heart of the language: WL's own documentation says so, and every oth
 
 ## MVP Slice
 
+> **Superseded.** The authoritative MVP scope is now [m0-milestone.md](m0-milestone.md) (see issue #1), which merges this build order with the other two specs' slices into one milestone table. This section is kept for research context.
+
 The minimal coherent subset an OSS core language needs to ship first to be credible with a Mathematica-literate evaluator, in rough build order:
 
 1. **Expression kernel**: the universal `Head[args...]` tree (1.1), symbol table with a flat `Global`/`System` namespace (1.4, deferring full multi-package contexts), machine-precision reals plus arbitrary-precision integers/rationals from day one via a host bignum library (6.1).

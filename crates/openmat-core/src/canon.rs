@@ -341,6 +341,22 @@ pub fn eval_power(args: &[Expr]) -> Expr {
         return base.clone();
     }
 
+    // Distribute a reciprocal over a product: Power[Times[a, b], -1] becomes
+    // Times[Power[a, -1], Power[b, -1]], so the two ways a quotient can parse
+    // (a/b/c vs a/(b*c)) converge to one canonical form. The evaluator's
+    // fixed-point loop re-canonicalizes the resulting product.
+    if *exp == Expr::Integer(-1) {
+        if let Expr::Normal { head, args: factors } = base {
+            if head.as_symbol() == Some("Times") {
+                let recips = factors
+                    .iter()
+                    .map(|f| Expr::normal(Expr::symbol("Power"), vec![f.clone(), Expr::integer(-1)]))
+                    .collect();
+                return Expr::normal(Expr::symbol("Times"), recips);
+            }
+        }
+    }
+
     match (base, exp) {
         (Expr::Real(b), Expr::Integer(e)) => Expr::real(b.powi(*e as i32)),
         (Expr::Real(b), Expr::Real(e)) => Expr::real(b.powf(*e)),

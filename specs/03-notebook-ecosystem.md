@@ -33,7 +33,7 @@ A Mathematica notebook is not a text file with output appended below it. It is i
 - Cell types (Input/Output/Text/Section), linear notebook, save/load: **must-have**.
 - Cell grouping/outlining, collapsible sections: **should-have**.
 - Notebook-as-expression (kernel can read/write its own doc structurally): **should-have** for v1, but architecturally must be decided on day one even if the full feature ships later, because retrofitting it is very costly.
-- Structural 2D math input: **should-have** (huge perceived-quality signal, but usable MVP can ship with LaTeX-source input + rendered output first, structural editing layered in later).
+- Structural 2D math input: **must-have, release gate** (superseded by the feature interview, round 4: the flagship demo does not ship until MathLive-based structural input works end to end; the initial supported box model is limited to the forms the flagship demo needs: identifiers, numbers, arithmetic, fractions, powers, derivatives, function application, equations, lists, grouping).
 - Free-form linguistic input: **later**, and probably reframed as "ask an LLM to write Wolfram-Language-like code," not a reimplementation of Wolfram|Alpha's NLP.
 
 ---
@@ -257,6 +257,8 @@ No existing project combines all three of: (1) a real symbolic-math-first langua
 
 ## MVP slice
 
+> **Superseded.** The authoritative MVP scope is now [m0-milestone.md](m0-milestone.md), which resolves this section against the feature interview and the other two specs (see issue #1). Two changes of note: structural 2D input moved from skip to release gate, and the kernel is specified as one transport-neutral service with a local in-process adapter first and a Jupyter protocol adapter as a later milestone. This section is kept for research context.
+
 The smallest front end that is worth shipping and that a real user would choose to open twice:
 
 1. **Notebook editor**: linear sequence of Input/Output/Text/Section cells, evaluate-cell-with-shift-enter, save/load a native notebook format that is a serialized expression tree (not ad hoc JSON), basic cell grouping/outlining.
@@ -266,7 +268,7 @@ The smallest front end that is worth shipping and that a real user would choose 
 5. **A documentation viewer built from the same cell-rendering component as the notebook**, covering a small, curated set of functions to the full standard (runnable examples, CI-verified) rather than a large set done poorly.
 6. **A CLI/script runner** (headless kernel execution) for automation and CI use, cheap to add once the kernel exists.
 7. **A basic package/import mechanism** and a Python bridge (`ExternalEvaluate`-equivalent), so users are never fully blocked by missing built-ins.
-8. Skip for MVP: structural 2D math input (ship LaTeX/text math input with rendered output first), free-form linguistic input, any knowledgebase beyond static physical-constants/unit data, CloudDeploy/hosted-API story, LibraryLink/native FFI, locators and 3D live-rotation (ship these once the reactivity core is solid).
+8. Skip for MVP: free-form linguistic input, any knowledgebase beyond static physical-constants/unit data, CloudDeploy/hosted-API story, LibraryLink/native FFI, locators and 3D live-rotation (ship these once the reactivity core is solid).
 
 **Architecture recommendation: own notebook document model, Jupyter kernel protocol underneath, not "just build a Jupyter notebook extension."**
 

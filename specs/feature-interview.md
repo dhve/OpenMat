@@ -59,6 +59,8 @@ Answer: **Gate the demo on 2D input.** Team overruled the interviewer: the flags
 
 ## Decisions summary
 
+These decisions are authoritative and supersede any conflicting recommendation in specs 01-03 (see issue #1). The single MVP scope derived from them is [m0-milestone.md](m0-milestone.md).
+
 | Decision | Call |
 |---|---|
 | Wedge user | Students and educators |

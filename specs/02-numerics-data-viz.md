@@ -481,6 +481,8 @@ The Wolfram Language's ML story is impressive precisely because it's fully integ
 
 ## MVP slice: the minimal numerics + plotting subset for day-one credibility
 
+> **Superseded.** The authoritative MVP scope is now [m0-milestone.md](m0-milestone.md) (see issue #1). M0 is narrower than this list: it covers only the damped-pendulum flagship path. This section is kept for research context and as the source pool for later milestones.
+
 A scientist or student's first ten minutes with OpenMat should support, without any missing piece breaking the flow:
 
 1. **`N[expr, digits]`** with machine precision solid and arbitrary precision working via an MPFR wrapper (exact significance-arithmetic fidelity not required yet).
