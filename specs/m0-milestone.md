@@ -33,5 +33,6 @@ Cross-cutting M0 budgets:
 - M3 (kernel service): Jupyter protocol adapter over the same kernel API, headless CLI runner, remote kernels.
 - M4 (math breadth): Integrate via Rubi port, Solve, symbolic simplification depth, NIntegrate, Plot[] of arbitrary expressions with adaptive sampling and discontinuity detection.
 - M5 (ecosystem): package mechanism, Python bridge, curated data functions.
+- M6 (natural language): LLM-backed input cells that translate plain English to OpenMat syntax. Provider-agnostic: user-supplied API key (Anthropic and friends) or local models via Ollama. Generated code always lands in an editable input cell for the user to run, never auto-executes. The grammar spec doubles as the generation constraint. This replaces Mathematica's server-side free-form input with something it cannot offer: private, local, open.
 
 Adaptive plot sampling note: M0 plots solver dense output only, so adaptive sampling and discontinuity fixtures (spec 02's flagged risk) belong to M4 with Plot[], not M0.
