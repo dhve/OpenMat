@@ -381,6 +381,13 @@ pub(crate) fn plot(evaluator: &Evaluator, expr: &Expr) -> Result<PlotOutcome, St
         return Err("Plot: no expressions given to plot".to_string());
     }
 
+    // Resolve session definitions up front (Plot[y, ...] after y = x^2 must
+    // plot x^2): the sampler substitutes the plot variable textually before
+    // evaluating, so a definition that only unfolds during evaluation would
+    // otherwise never contain the variable to substitute. Labels keep the
+    // form the user typed.
+    let targets: Vec<(Expr, String)> = targets.into_iter().map(|(target, label)| (evaluator.eval(&target), label)).collect();
+
     for (target, _label) in &targets {
         if let Some(stray) = find_free_symbol(evaluator, target, &var) {
             return Err(format!(
@@ -418,7 +425,9 @@ pub(crate) fn list_plot(evaluator: &Evaluator, expr: &Expr) -> Result<PlotOutcom
         return Err(format!("ListPlot expects 1 argument (a list of data), got {}", args.len()));
     }
 
-    let items = list_items(&args[0]).ok_or_else(|| "ListPlot: argument must be a list".to_string())?;
+    // Resolve session definitions (ListPlot[data] after data = {...}).
+    let data = evaluator.eval(&args[0]);
+    let items = list_items(&data).ok_or_else(|| "ListPlot: argument must be a list".to_string())?;
     if items.is_empty() {
         return Err("ListPlot: given an empty list".to_string());
     }

@@ -396,6 +396,29 @@ mod tests {
     }
 
     #[test]
+    fn session_ownvalue_resolves_inside_plot() {
+        evaluate("qsessy = x^2", 1);
+        let result = evaluate("Plot[qsessy, {x, 0, 2}]", 2);
+        assert_eq!(result.status, KernelStatus::Ok, "plot failed: {:?}", result.error);
+        let (curves, ..) = find_plot(&result.displays).expect("expected a plot display");
+        let total: usize = curves.iter().map(|c| c.points.len()).sum();
+        assert!(total > 0, "Plot of a session-defined symbol must actually sample points");
+        let mid = curves[0].points[curves[0].points.len() / 2];
+        assert!((mid.1 - mid.0 * mid.0).abs() < 1e-6, "sample ({}, {}) not on y = x^2", mid.0, mid.1);
+        evaluate("Clear[qsessy]", 3);
+    }
+
+    #[test]
+    fn session_list_resolves_inside_listplot() {
+        evaluate("qsessdata = {1, 4, 9}", 1);
+        let result = evaluate("ListPlot[qsessdata]", 2);
+        assert_eq!(result.status, KernelStatus::Ok, "listplot failed: {:?}", result.error);
+        let (curves, ..) = find_plot(&result.displays).expect("expected a plot display");
+        assert_eq!(curves[0].points, vec![(1.0, 1.0), (2.0, 4.0), (3.0, 9.0)]);
+        evaluate("Clear[qsessdata]", 3);
+    }
+
+    #[test]
     fn session_downvalue_resolves_inside_plot() {
         let defined = evaluate("qsessf[y_] := y^2", 1);
         assert_eq!(defined.status, KernelStatus::Ok, "definition failed: {:?}", defined.error);
