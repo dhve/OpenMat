@@ -22,8 +22,12 @@ describe("translateLatexToWL", () => {
     expect(translateLatexToWL("2x")).toBe("2 x");
   });
 
-  it("translates implicit multiplication of adjacent symbols", () => {
-    expect(translateLatexToWL("xy")).toBe("x y");
+  it("keeps consecutive letters as one symbol, as Mathematica does", () => {
+    expect(translateLatexToWL("xy")).toBe("xy");
+  });
+
+  it("translates implicit multiplication across a spacing boundary", () => {
+    expect(translateLatexToWL("c\\,x")).toBe("c x");
   });
 
   it("translates division", () => {
@@ -82,8 +86,16 @@ describe("translateLatexToWL", () => {
     expect(translateLatexToWL("x''(t)")).toBe("x''[t]");
   });
 
-  it("translates equality", () => {
-    expect(translateLatexToWL("x=5")).toBe("x == 5");
+  it("translates = with an assignable left side as Set", () => {
+    expect(translateLatexToWL("x=5")).toBe("x = 5");
+  });
+
+  it("translates = with a non-assignable left side as Equal", () => {
+    expect(translateLatexToWL("x^2+y^2=4")).toBe("x^2 + y^2 == 4");
+  });
+
+  it("translates == as Equal regardless of the left side", () => {
+    expect(translateLatexToWL("x==5")).toBe("x == 5");
   });
 
   it("translates the full damped pendulum equation", () => {
@@ -97,6 +109,63 @@ describe("translateLatexToWL", () => {
 
   it("translates \\pi as the WL constant Pi", () => {
     expect(translateLatexToWL("2\\pi")).toBe("2 Pi");
+  });
+
+  it("translates a bracketed call with a typed-brace list, MathLive style", () => {
+    expect(translateLatexToWL("Plot\\lbrack\\sin\\left(x\\right),\\lbrace x,0,10\\rbrace\\rbrack")).toBe(
+      "Plot[Sin[x], {x, 0, 10}]",
+    );
+  });
+
+  it("translates a bracketed call typed with literal characters", () => {
+    expect(translateLatexToWL("Plot[\\sin(x),\\{x,0,10\\}]")).toBe("Plot[Sin[x], {x, 0, 10}]");
+  });
+
+  it("translates a multi-letter head applied with brackets", () => {
+    expect(translateLatexToWL("Expand[(x+1)^2]")).toBe("Expand[(x + 1)^2]");
+  });
+
+  it("translates a known head applied with parens", () => {
+    expect(translateLatexToWL("Plot(\\sin(x),\\lbrace x,0,10\\rbrace)")).toBe("Plot[Sin[x], {x, 0, 10}]");
+  });
+
+  it("normalizes a lowercase known head", () => {
+    expect(translateLatexToWL("sin[x]")).toBe("Sin[x]");
+  });
+
+  it("repairs MathLive's mid-word \\in shortcut firing", () => {
+    expect(translateLatexToWL("S\\in[x]")).toBe("Sin[x]");
+  });
+
+  it("treats an unknown multi-letter symbol before parens as multiplication", () => {
+    expect(translateLatexToWL("ab(x+1)")).toBe("ab (x + 1)");
+  });
+
+  it("translates a nested NDSolve call", () => {
+    const latex = "NDSolve[\\lbrace x''(t)+cx'(t)+\\sin(x(t))==0,x(0)==2,x'(0)==0\\rbrace,x,\\lbrace t,0,20\\rbrace]";
+    expect(translateLatexToWL(latex)).toBe(
+      "NDSolve[{x''[t] + cx'[t] + Sin[x[t]] == 0, x[0] == 2, x'[0] == 0}, x, {t, 0, 20}]",
+    );
+  });
+
+  it("translates a rule arrow", () => {
+    expect(translateLatexToWL("x\\to2")).toBe("x -> 2");
+  });
+
+  it("translates a bounded integral with \\differentialD", () => {
+    expect(translateLatexToWL("\\int_0^1x^2\\differentialD x")).toBe("Integrate[x^2, {x, 0, 1}]");
+  });
+
+  it("translates an indefinite integral typed with plain dx", () => {
+    expect(translateLatexToWL("\\int x^2dx")).toBe("Integrate[x^2, x]");
+  });
+
+  it("translates a sum with bounds", () => {
+    expect(translateLatexToWL("\\sum_{n=1}^{10}n^2")).toBe("Sum[n^2, {n, 1, 10}]");
+  });
+
+  it("translates an empty list", () => {
+    expect(translateLatexToWL("\\lbrace\\rbrace")).toBe("{}");
   });
 
   it("returns an empty string for empty input", () => {

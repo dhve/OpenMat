@@ -7,10 +7,17 @@
 // (rather than doing text substitution) is what lets nested cases, like a
 // fraction inside a function argument, come out correctly.
 //
-// Coverage: numbers, single-letter symbols, + - * / ^, \frac, implicit
-// multiplication by juxtaposition, function application (\sin(x) -> Sin[x]),
-// primes as derivatives (x''(t) -> x''[t]), equality (=  -> ==). No
-// subscripts: the demo scope is subscript-free.
+// Coverage: numbers, symbols, + - * / ^, \frac, \sqrt, implicit
+// multiplication by juxtaposition, function application in both notations
+// (\sin(x) -> Sin[x], Plot[...] -> Plot[...]), typed-brace lists
+// (\lbrace x,0,10\rbrace -> {x, 0, 10}), rules (\to -> ->), primes as
+// derivatives (x''(t) -> x''[t]), integrals and sums with bounds, and
+// Mathematica's =/== split (Set when the left side is assignable, Equal
+// otherwise).
+//
+// Symbol convention matches Mathematica: consecutive letters form ONE
+// symbol (xy is the symbol xy, not x*y); juxtaposition across a boundary
+// (2x, a\,b, a b) is implicit multiplication.
 
 type TokenType =
   | "num"
@@ -21,14 +28,24 @@ type TokenType =
   | "prime"
   | "lparen"
   | "rparen"
-  | "lbrace"
+  | "lbrace"   // structural LaTeX group: ^{...}, \frac{...}{...}
   | "rbrace"
+  | "lbrack"   // typed [ -> WL function call
+  | "rbrack"
+  | "llist"    // typed { (\lbrace) -> WL list
+  | "rlist"
   | "plus"
   | "minus"
   | "star"
   | "slash"
   | "caret"
+  | "under"
   | "equals"
+  | "eqeq"
+  | "arrow"
+  | "int"
+  | "sum"
+  | "dd"       // \differentialD (MathLive's integral differential)
   | "comma"
   | "eof";
 
@@ -38,7 +55,8 @@ interface Token {
   primeCount?: number;
 }
 
-// LaTeX command name -> WL function name.
+// LaTeX command name -> WL function name. Doubles as the normalizer for
+// lowercase heads typed as plain letters ("sin[x]" -> Sin[x]).
 const KNOWN_FUNCTIONS: Record<string, string> = {
   sin: "Sin",
   cos: "Cos",
@@ -55,12 +73,32 @@ const KNOWN_FUNCTIONS: Record<string, string> = {
   log: "Log",
   ln: "Log",
   exp: "Exp",
+  min: "Min",
+  max: "Max",
+  abs: "Abs",
 };
+
+// WL heads that may be applied with parentheses as well as brackets
+// (users coming from math notation type Plot(...), Sin(x)). A bare
+// multi-letter symbol NOT in this set followed by ( is multiplication,
+// matching Mathematica, where only [ ] is application syntax.
+const KNOWN_HEADS = new Set([
+  "Sin", "Cos", "Tan", "Cot", "Sec", "Csc",
+  "ArcSin", "ArcCos", "ArcTan", "Sinh", "Cosh", "Tanh",
+  "Log", "Exp", "Sqrt", "Abs", "N",
+  "Plot", "ListPlot", "NDSolve", "DSolve", "Solve", "NSolve",
+  "D", "Dt", "Integrate", "NIntegrate", "Sum", "Product",
+  "Limit", "Series", "Expand", "Factor", "Simplify", "FullSimplify",
+  "Table", "Range", "Min", "Max", "Floor", "Ceiling", "Round",
+  "Mod", "GCD", "LCM", "Manipulate",
+]);
 
 // LaTeX symbol command -> WL constant/symbol name.
 const KNOWN_SYMBOLS: Record<string, string> = {
   pi: "Pi",
   infty: "Infinity",
+  exponentialE: "E",
+  imaginaryI: "I",
   alpha: "Alpha",
   beta: "Beta",
   gamma: "Gamma",
@@ -73,33 +111,38 @@ const KNOWN_SYMBOLS: Record<string, string> = {
   sigma: "Sigma",
 };
 
-const SPACE_COMMANDS = new Set(["left", "right", ",", ";", "!", "quad", "qquad", " "]);
+const SPACE_COMMANDS = new Set(["left", "right", ",", ";", "!", "quad", "qquad", " ", "mathrm", "text", "operatorname"]);
 
 class TranslatorError extends Error {}
 
 function tokenize(latex: string): Token[] {
+  // MathLive's inline shortcuts can fire mid-word: typing "Sin" becomes
+  // "S\in" (the element-of shortcut). Glue such commands back onto the
+  // preceding letter so the identifier survives.
+  const source = latex.replace(/([A-Za-z])\\in(?![a-zA-Z])/g, "$1in");
+
   const tokens: Token[] = [];
   let i = 0;
-  const n = latex.length;
+  const n = source.length;
 
   const readCommand = (): string => {
     // i is at the backslash.
     i++;
     let start = i;
-    if (i < n && /[a-zA-Z]/.test(latex[i])) {
-      while (i < n && /[a-zA-Z]/.test(latex[i])) i++;
-      return latex.slice(start, i);
+    if (i < n && /[a-zA-Z]/.test(source[i])) {
+      while (i < n && /[a-zA-Z]/.test(source[i])) i++;
+      return source.slice(start, i);
     }
-    // Single non-letter command, e.g. \, or \!
+    // Single non-letter command, e.g. \, or \{
     if (i < n) {
       i++;
-      return latex.slice(start, i);
+      return source.slice(start, i);
     }
     return "";
   };
 
   while (i < n) {
-    const c = latex[i];
+    const c = source[i];
 
     if (/\s/.test(c)) {
       i++;
@@ -110,8 +153,36 @@ function tokenize(latex: string): Token[] {
       const startI = i;
       const cmd = readCommand();
       if (SPACE_COMMANDS.has(cmd)) continue;
+      if (cmd === "{") {
+        tokens.push({ type: "llist", value: "{" });
+        continue;
+      }
+      if (cmd === "}") {
+        tokens.push({ type: "rlist", value: "}" });
+        continue;
+      }
+      if (cmd === "lbrace") {
+        tokens.push({ type: "llist", value: "{" });
+        continue;
+      }
+      if (cmd === "rbrace") {
+        tokens.push({ type: "rlist", value: "}" });
+        continue;
+      }
+      if (cmd === "lbrack") {
+        tokens.push({ type: "lbrack", value: "[" });
+        continue;
+      }
+      if (cmd === "rbrack") {
+        tokens.push({ type: "rbrack", value: "]" });
+        continue;
+      }
       if (cmd === "prime") {
         tokens.push({ type: "prime", value: "'", primeCount: 1 });
+        continue;
+      }
+      if (cmd === "doubleprime") {
+        tokens.push({ type: "prime", value: "''", primeCount: 2 });
         continue;
       }
       if (cmd === "frac") {
@@ -126,16 +197,36 @@ function tokenize(latex: string): Token[] {
         tokens.push({ type: "star", value: "*" });
         continue;
       }
+      if (cmd === "to" || cmd === "rightarrow" || cmd === "Rightarrow") {
+        tokens.push({ type: "arrow", value: "->" });
+        continue;
+      }
+      if (cmd === "int") {
+        tokens.push({ type: "int", value: cmd });
+        continue;
+      }
+      if (cmd === "sum") {
+        tokens.push({ type: "sum", value: cmd });
+        continue;
+      }
+      if (cmd === "differentialD") {
+        tokens.push({ type: "dd", value: "d" });
+        continue;
+      }
       const lower = cmd.toLowerCase();
       if (lower in KNOWN_FUNCTIONS) {
         tokens.push({ type: "func", value: KNOWN_FUNCTIONS[lower] });
+        continue;
+      }
+      if (cmd in KNOWN_SYMBOLS) {
+        tokens.push({ type: "ident", value: KNOWN_SYMBOLS[cmd] });
         continue;
       }
       if (lower in KNOWN_SYMBOLS) {
         tokens.push({ type: "ident", value: KNOWN_SYMBOLS[lower] });
         continue;
       }
-      throw new TranslatorError(`Unsupported LaTeX command \\${cmd || latex.slice(startI, i)}`);
+      throw new TranslatorError(`Unsupported LaTeX command \\${cmd || source.slice(startI, i)}`);
     }
 
     if (c === "'") {
@@ -144,35 +235,34 @@ function tokenize(latex: string): Token[] {
       continue;
     }
     if (c === "′") {
-      // Unicode prime.
       tokens.push({ type: "prime", value: "'", primeCount: 1 });
       i++;
       continue;
     }
     if (c === "″") {
-      // Unicode double prime.
       tokens.push({ type: "prime", value: "''", primeCount: 2 });
       i++;
       continue;
     }
 
-    if (/[0-9]/.test(c)) {
+    if (/[0-9]/.test(c) || (c === "." && /[0-9]/.test(source[i + 1] ?? ""))) {
       let start = i;
-      while (i < n && /[0-9]/.test(latex[i])) i++;
-      if (latex[i] === "." && /[0-9]/.test(latex[i + 1] ?? "")) {
+      while (i < n && /[0-9]/.test(source[i])) i++;
+      if (source[i] === "." && /[0-9]/.test(source[i + 1] ?? "")) {
         i++;
-        while (i < n && /[0-9]/.test(latex[i])) i++;
+        while (i < n && /[0-9]/.test(source[i])) i++;
       }
-      tokens.push({ type: "num", value: latex.slice(start, i) });
+      tokens.push({ type: "num", value: source.slice(start, i) });
       continue;
     }
 
     if (/[a-zA-Z]/.test(c)) {
-      // Each letter is its own symbol: adjacent letters are implicit
-      // multiplication, matching WL/math convention (no multi-letter bare
-      // identifiers in this scope).
-      tokens.push({ type: "ident", value: c });
-      i++;
+      // Consecutive letters form ONE symbol, exactly as in Mathematica:
+      // "Plot" is the head Plot, "xy" is the symbol xy. Implicit
+      // multiplication needs a boundary (a digit, \, spacing, an operator).
+      let start = i;
+      while (i < n && /[a-zA-Z]/.test(source[i])) i++;
+      tokens.push({ type: "ident", value: source.slice(start, i) });
       continue;
     }
 
@@ -193,11 +283,24 @@ function tokenize(latex: string): Token[] {
         tokens.push({ type: "rbrace", value: c });
         i++;
         continue;
+      case "[":
+        tokens.push({ type: "lbrack", value: c });
+        i++;
+        continue;
+      case "]":
+        tokens.push({ type: "rbrack", value: c });
+        i++;
+        continue;
       case "+":
         tokens.push({ type: "plus", value: c });
         i++;
         continue;
       case "-":
+        if (source[i + 1] === ">") {
+          tokens.push({ type: "arrow", value: "->" });
+          i += 2;
+          continue;
+        }
         tokens.push({ type: "minus", value: c });
         i++;
         continue;
@@ -213,7 +316,16 @@ function tokenize(latex: string): Token[] {
         tokens.push({ type: "caret", value: c });
         i++;
         continue;
+      case "_":
+        tokens.push({ type: "under", value: c });
+        i++;
+        continue;
       case "=":
+        if (source[i + 1] === "=") {
+          tokens.push({ type: "eqeq", value: "==" });
+          i += 2;
+          continue;
+        }
         tokens.push({ type: "equals", value: c });
         i++;
         continue;
@@ -236,8 +348,16 @@ type Node =
   | { kind: "num"; value: string }
   | { kind: "sym"; name: string }
   | { kind: "neg"; operand: Node }
-  | { kind: "bin"; op: "+" | "-" | "*" | "/" | "^" | "=="; left: Node; right: Node; explicitMul?: boolean }
+  | { kind: "list"; items: Node[] }
+  | { kind: "bin"; op: "+" | "-" | "*" | "/" | "^" | "==" | "->" | "="; left: Node; right: Node; explicitMul?: boolean }
   | { kind: "call"; name: string; args: Node[]; primeCount: number };
+
+/** Set (a = 5, f[x] = ...) vs Equal (x^2 + y^2 = 4): a typed "=" is
+ * Mathematica's Set only when the left side could actually take a
+ * definition; for any other left side the user means an equation. */
+function isAssignable(node: Node): boolean {
+  return node.kind === "sym" || node.kind === "call";
+}
 
 class Parser {
   private tokens: Token[];
@@ -266,19 +386,40 @@ class Parser {
   }
 
   parseTop(): Node {
-    const node = this.parseEquation();
+    const node = this.parseSet();
     if (this.peek().type !== "eof") {
       throw new TranslatorError(`Unexpected trailing input near "${this.peek().value}"`);
     }
     return node;
   }
 
-  private parseEquation(): Node {
-    const left = this.parseAddSub();
+  // Loosest level, right-associative like WL: a = b = 5 is a = (b = 5).
+  private parseSet(): Node {
+    const left = this.parseRule();
     if (this.peek().type === "equals") {
       this.advance();
+      const right = this.parseSet();
+      return { kind: "bin", op: isAssignable(left) ? "=" : "==", left, right };
+    }
+    return left;
+  }
+
+  private parseRule(): Node {
+    const left = this.parseEquation();
+    if (this.peek().type === "arrow") {
+      this.advance();
+      const right = this.parseRule();
+      return { kind: "bin", op: "->", left, right };
+    }
+    return left;
+  }
+
+  private parseEquation(): Node {
+    let left = this.parseAddSub();
+    while (this.peek().type === "eqeq") {
+      this.advance();
       const right = this.parseAddSub();
-      return { kind: "bin", op: "==", left, right };
+      left = { kind: "bin", op: "==", left, right };
     }
     return left;
   }
@@ -301,8 +442,11 @@ class Parser {
       t === "func" ||
       t === "frac" ||
       t === "sqrt" ||
+      t === "int" ||
+      t === "sum" ||
       t === "lparen" ||
-      t === "lbrace"
+      t === "lbrace" ||
+      t === "llist"
     );
   }
 
@@ -389,29 +533,43 @@ class Parser {
     return sawPrime && this.tokens[p]?.type === "rbrace";
   }
 
+  /** Normalize a head typed as plain letters: lowercase aliases of known
+   * functions become their WL names (sin -> Sin); anything else is kept
+   * as typed, since WL symbols are case-sensitive. */
+  private normalizeHead(name: string): string {
+    return KNOWN_FUNCTIONS[name.toLowerCase()] && name === name.toLowerCase() ? KNOWN_FUNCTIONS[name.toLowerCase()] : name;
+  }
+
   private parsePostfix(): Node {
     const node = this.parseAtom();
 
     if (node.kind === "sym") {
       const primeCount = this.collectPrimes();
-      if (this.peek().type === "lparen") {
+      // Bracket application is always a call, exactly as in WL.
+      if (this.peek().type === "lbrack") {
         this.advance();
-        const args = this.parseArgList();
+        const args = this.peek().type === "rbrack" ? [] : this.parseArgList();
+        this.expect("rbrack");
+        return { kind: "call", name: this.normalizeHead(node.name), args, primeCount };
+      }
+      // Paren application only for single-letter symbols (f(x), x'(t)),
+      // primed symbols (cx'(t) is the derivative of the function cx), and
+      // known heads (Plot(...), Sin(x)); any other symbol followed by ( is
+      // multiplication, as in Mathematica.
+      if (
+        this.peek().type === "lparen" &&
+        (node.name.length === 1 || primeCount > 0 || KNOWN_HEADS.has(this.normalizeHead(node.name)))
+      ) {
+        this.advance();
+        const args = this.peek().type === "rparen" ? [] : this.parseArgList();
         this.expect("rparen");
-        return { kind: "call", name: node.name, args, primeCount };
+        return { kind: "call", name: this.normalizeHead(node.name), args, primeCount };
       }
       if (primeCount > 0) {
-        // A bare symbol with primes and no call, e.g. just "x'". Treat as a
-        // zero-argument-looking derivative marker kept as a symbol name for
-        // simplicity: WL has no clean bare-prime-no-args form, so we render
-        // it as a plain primed symbol name.
+        // A bare symbol with primes and no call, e.g. just "x'". WL has no
+        // clean bare-prime-no-args form, so keep it as a primed name.
         return { kind: "sym", name: node.name + "'".repeat(primeCount) };
       }
-      return node;
-    }
-
-    if (node.kind === "call") {
-      // Function calls (from \sin etc.) do not take primes in this scope.
       return node;
     }
 
@@ -419,12 +577,89 @@ class Parser {
   }
 
   private parseArgList(): Node[] {
-    const args: Node[] = [this.parseAddSub()];
+    const args: Node[] = [this.parseSet()];
     while (this.peek().type === "comma") {
       this.advance();
-      args.push(this.parseAddSub());
+      args.push(this.parseSet());
     }
     return args;
+  }
+
+  /** Parse one bound of an integral/sum: a braced group or a single
+   * (possibly negated) atom. Deliberately NOT parseUnary: in "\int_0^1"
+   * the ^1 is the upper bound, and a power-aware parse of the lower bound
+   * would swallow it as 0^1. */
+  private parseBound(): Node {
+    if (this.peek().type === "lbrace") {
+      this.advance();
+      const inner = this.parseSet();
+      this.expect("rbrace");
+      return inner;
+    }
+    if (this.peek().type === "minus") {
+      this.advance();
+      return { kind: "neg", operand: this.parseAtom() };
+    }
+    return this.parseAtom();
+  }
+
+  /** \int_a^b body \differentialD x  ->  Integrate[body, {x, a, b}].
+   * Without bounds: Integrate[body, x]. The differential may arrive as
+   * MathLive's \differentialD token or as a plain "dx" identifier. */
+  private parseIntegral(): Node {
+    let lower: Node | undefined;
+    let upper: Node | undefined;
+    while (this.peek().type === "under" || this.peek().type === "caret") {
+      if (this.advance().type === "under") lower = this.parseBound();
+      else upper = this.parseBound();
+    }
+
+    let body: Node;
+    let variable: string;
+    if (this.peek().type === "dd") {
+      // \int ... \differentialD x with an empty integrand means integrand 1.
+      body = { kind: "num", value: "1" };
+      this.advance();
+      variable = this.expect("ident").value;
+    } else {
+      body = this.parseAddSub();
+      if (this.peek().type === "dd") {
+        this.advance();
+        variable = this.expect("ident").value;
+      } else {
+        const stripped = stripTrailingDifferential(body);
+        if (!stripped) {
+          throw new TranslatorError("Integral is missing its differential (dx)");
+        }
+        [body, variable] = stripped;
+      }
+    }
+
+    const args: Node[] =
+      lower !== undefined && upper !== undefined
+        ? [body, { kind: "list", items: [{ kind: "sym", name: variable }, lower, upper] }]
+        : [body, { kind: "sym", name: variable }];
+    return { kind: "call", name: "Integrate", args, primeCount: 0 };
+  }
+
+  /** \sum_{n=1}^{10} body -> Sum[body, {n, 1, 10}]. */
+  private parseSum(): Node {
+    let lower: Node | undefined;
+    let upper: Node | undefined;
+    while (this.peek().type === "under" || this.peek().type === "caret") {
+      if (this.advance().type === "under") lower = this.parseBound();
+      else upper = this.parseBound();
+    }
+    if (!lower || lower.kind !== "bin" || (lower.op !== "==" && lower.op !== "=") || lower.left.kind !== "sym" || !upper) {
+      throw new TranslatorError("Sum needs bounds of the form n=1 below and a limit above");
+    }
+    const body = this.parseMulDiv();
+    return {
+      kind: "call",
+      name: "Sum",
+      args: [body, { kind: "list", items: [lower.left, lower.right, upper] }],
+      primeCount: 0,
+    };
   }
 
   private parseAtom(): Node {
@@ -443,6 +678,10 @@ class Parser {
           this.advance();
           args = this.parseArgList();
           this.expect("rparen");
+        } else if (this.peek().type === "lbrack") {
+          this.advance();
+          args = this.parseArgList();
+          this.expect("rbrack");
         } else if (this.peek().type === "lbrace") {
           this.advance();
           args = [this.parseAddSub()];
@@ -469,22 +708,66 @@ class Parser {
         this.expect("rbrace");
         return { kind: "call", name: "Sqrt", args: [radicand], primeCount: 0 };
       }
+      case "int": {
+        this.advance();
+        return this.parseIntegral();
+      }
+      case "sum": {
+        this.advance();
+        return this.parseSum();
+      }
       case "lparen": {
         this.advance();
-        const inner = this.parseEquation();
+        const inner = this.parseSet();
         this.expect("rparen");
         return inner;
       }
       case "lbrace": {
         this.advance();
-        const inner = this.parseEquation();
+        const inner = this.parseSet();
         this.expect("rbrace");
         return inner;
+      }
+      case "llist": {
+        this.advance();
+        if (this.peek().type === "rlist") {
+          this.advance();
+          return { kind: "list", items: [] };
+        }
+        const items: Node[] = [this.parseSet()];
+        while (this.peek().type === "comma") {
+          this.advance();
+          items.push(this.parseSet());
+        }
+        this.expect("rlist");
+        return { kind: "list", items };
       }
       default:
         throw new TranslatorError(`Unexpected token "${t.value || t.type}"`);
     }
   }
+}
+
+/** For an integral typed without \differentialD (plain "dx" letters, which
+ * tokenize as the single symbol dx): find and remove the trailing d-prefixed
+ * factor, returning the remaining body and the integration variable. */
+function stripTrailingDifferential(node: Node): [Node, string] | null {
+  if (node.kind === "sym" && node.name.length >= 2 && node.name.startsWith("d")) {
+    return [{ kind: "num", value: "1" }, node.name.slice(1)];
+  }
+  if (node.kind === "bin" && node.op === "*") {
+    const right = stripTrailingDifferential(node.right);
+    if (right) {
+      const [rest, variable] = right;
+      if (rest.kind === "num" && rest.value === "1") return [node.left, variable];
+      return [{ ...node, right: rest }, variable];
+    }
+  }
+  if (node.kind === "neg") {
+    const inner = stripTrailingDifferential(node.operand);
+    if (inner) return [{ kind: "neg", operand: inner[0] }, inner[1]];
+  }
+  return null;
 }
 
 // --- Pretty printer ---
@@ -494,6 +777,7 @@ function nodePrec(node: Node): number {
     case "num":
     case "sym":
     case "call":
+    case "list":
       return 6;
     case "neg":
       return 4;
@@ -501,7 +785,9 @@ function nodePrec(node: Node): number {
       if (node.op === "^") return 5;
       if (node.op === "*" || node.op === "/") return 3;
       if (node.op === "+" || node.op === "-") return 2;
-      return 1; // ==
+      if (node.op === "==") return 1;
+      if (node.op === "->") return 0.8;
+      return 0.5; // =
   }
 }
 
@@ -518,8 +804,10 @@ function printInner(node: Node): string {
       return node.name;
     case "neg":
       return `-${print(node.operand, 4)}`;
+    case "list":
+      return `{${node.items.map((item) => print(item, 0)).join(", ")}}`;
     case "call": {
-      const args = node.args.map((a) => print(a, 1)).join(", ");
+      const args = node.args.map((a) => print(a, 0)).join(", ");
       return `${node.name}${"'".repeat(node.primeCount)}[${args}]`;
     }
     case "bin": {
@@ -536,6 +824,10 @@ function printInner(node: Node): string {
           return `${print(node.left, 6)}^${print(node.right, 5)}`;
         case "==":
           return `${print(node.left, 2)} == ${print(node.right, 2)}`;
+        case "->":
+          return `${print(node.left, 1)} -> ${print(node.right, 1)}`;
+        case "=":
+          return `${print(node.left, 0.8)} = ${print(node.right, 0.5)}`;
       }
     }
   }
