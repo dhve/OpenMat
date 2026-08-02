@@ -5,6 +5,7 @@
 //! [`KernelResult`] it gets back without reinterpreting it.
 
 mod ndsolve;
+mod plot;
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -138,10 +139,46 @@ pub fn evaluate_with_bindings(input: &str, bindings: &HashMap<String, f64>, requ
             ),
             Err(message) => KernelResult::error(request_id, ErrorKind::Solve, message, None),
         }
+    } else if bound.has_head("Plot") {
+        match plot::plot(&bound) {
+            Ok(outcome) => KernelResult::ok(
+                request_id,
+                plot_input_form(&bound),
+                vec![
+                    Display::Latex { latex: outcome.latex },
+                    Display::Plot { curves: outcome.curves, x_range: outcome.x_range, y_range: outcome.y_range },
+                ],
+            ),
+            Err(message) => KernelResult::error(request_id, ErrorKind::Eval, message, None),
+        }
+    } else if bound.has_head("ListPlot") {
+        match plot::list_plot(&bound) {
+            Ok(outcome) => KernelResult::ok(
+                request_id,
+                plot_input_form(&bound),
+                vec![
+                    Display::Latex { latex: outcome.latex },
+                    Display::Plot { curves: outcome.curves, x_range: outcome.x_range, y_range: outcome.y_range },
+                ],
+            ),
+            Err(message) => KernelResult::error(request_id, ErrorKind::Eval, message, None),
+        }
     } else {
         let evaluator = Evaluator::new();
         let result = clean_tree(&evaluator.eval(&bound));
         KernelResult::ok(request_id, result.to_string(), vec![Display::Latex { latex: to_latex(&result) }])
+    }
+}
+
+/// `input_form` for a `Plot`/`ListPlot` call: the InputForm of the plotted
+/// expression(s) or data (bindings already substituted in), mirroring
+/// `ndsolve_input_form`'s reasoning: the whole `Plot[...]`/`ListPlot[...]`
+/// call is not itself a reduced expression, but its first argument is what
+/// the latex display actually typesets.
+fn plot_input_form(bound: &Expr) -> String {
+    match bound.as_normal() {
+        Some((_, args)) if !args.is_empty() => args[0].to_string(),
+        _ => bound.to_string(),
     }
 }
 
@@ -293,6 +330,48 @@ mod tests {
         let err = result.error.expect("expected an error");
         assert!(matches!(err.kind, ErrorKind::Solve | ErrorKind::Eval), "unexpected error kind: {:?}", err.kind);
         assert!(err.message.contains('c'), "error should name the unbound symbol: {}", err.message);
+    }
+
+    #[test]
+    fn plot_dispatches_through_evaluate() {
+        let result = evaluate("Plot[Sin[x], {x, 0, 1}]", 1);
+        assert_eq!(result.status, KernelStatus::Ok);
+        assert!(result.error.is_none());
+        assert_eq!(find_latex(&result.displays), Some("\\sin\\left(x\\right)"));
+        let (curves, x_range, _) = find_plot(&result.displays).expect("expected a plot display");
+        assert_eq!(curves.len(), 1);
+        assert_eq!(x_range, (0.0, 1.0));
+    }
+
+    #[test]
+    fn plot_with_unbound_coefficient_bound_via_manipulate_solves() {
+        let mut bindings = HashMap::new();
+        bindings.insert("a".to_string(), 2.0);
+        let result = evaluate_with_bindings("Plot[a*Sin[x], {x, 0, 1}]", &bindings, 1);
+        assert_eq!(result.status, KernelStatus::Ok);
+        let (curves, ..) = find_plot(&result.displays).expect("expected a plot display");
+        assert_eq!(curves.len(), 1);
+        // Manipulate bindings are substituted as typed Expr::Real, never as
+        // text (ARCHITECTURE.md), so the bound coefficient prints as "2."
+        assert_eq!(curves[0].label.as_deref(), Some("2.*Sin[x]"));
+    }
+
+    #[test]
+    fn plot_with_unbound_coefficient_errors_naming_it() {
+        let result = evaluate("Plot[a*Sin[x], {x, 0, 1}]", 1);
+        assert_eq!(result.status, KernelStatus::Error);
+        assert!(result.displays.is_empty());
+        let err = result.error.expect("expected an error");
+        assert_eq!(err.kind, ErrorKind::Eval);
+        assert!(err.message.contains('a'), "error should name the unbound symbol: {}", err.message);
+    }
+
+    #[test]
+    fn list_plot_dispatches_through_evaluate() {
+        let result = evaluate("ListPlot[{1, 4, 9}]", 1);
+        assert_eq!(result.status, KernelStatus::Ok);
+        let (curves, ..) = find_plot(&result.displays).expect("expected a plot display");
+        assert_eq!(curves[0].points, vec![(1.0, 1.0), (2.0, 4.0), (3.0, 9.0)]);
     }
 
     #[test]
