@@ -1,0 +1,15 @@
+[package]
+name = "openmat-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# No sundials in the browser: the pure-Rust Dormand-Prince solver handles
+# NDSolve on wasm32 (openmat-solve's non-default path).
+openmat-kernel = { path = "../openmat-kernel", default-features = false }
+serde_json = "1"

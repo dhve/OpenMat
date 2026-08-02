@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "build:wasm": "cargo build -p openmat-wasm --release --target wasm32-unknown-unknown && cp ../target/wasm32-unknown-unknown/release/openmat_wasm.wasm public/openmat_kernel.wasm"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

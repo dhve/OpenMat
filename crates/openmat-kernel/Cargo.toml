@@ -5,9 +5,15 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[features]
+# Forwarded so WASM builds (crates/openmat-wasm) can turn SUNDIALS off while
+# native builds keep it: sundials-sys compiles C and cannot target wasm32.
+default = ["sundials"]
+sundials = ["openmat-solve/sundials"]
+
 [dependencies]
 openmat-core = { path = "../openmat-core" }
-openmat-solve = { path = "../openmat-solve" }
+openmat-solve = { path = "../openmat-solve", default-features = false }
 serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]

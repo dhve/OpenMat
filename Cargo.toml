@@ -4,6 +4,7 @@ members = [
     "crates/openmat-core",
     "crates/openmat-solve",
     "crates/openmat-kernel",
+    "crates/openmat-wasm",
 ]
 
 [workspace.package]
