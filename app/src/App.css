@@ -9,16 +9,52 @@
   z-index: 10;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   height: 40px;
-  padding: 0 20px;
+  padding: 0 16px 0 20px;
   background: var(--paper);
   border-bottom: 1px solid var(--rule-soft);
 }
 
 .app-title {
   font-family: var(--font-serif);
-  font-weight: 600;
-  font-size: 13.5px;
-  letter-spacing: 0.02em;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.app-header-button {
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
   color: var(--ink-soft);
+  font-size: 12.5px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+
+.app-header-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.app-header-button-accent {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.app-header-button-accent:hover {
+  background: var(--accent);
+  color: var(--accent-ink);
+  opacity: 0.9;
 }

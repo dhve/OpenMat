@@ -1,0 +1,42 @@
+.text-cell-field {
+  display: block;
+  width: 100%;
+  resize: none;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  padding: 4px 2px;
+}
+
+.text-cell-field:focus {
+  border-color: var(--accent-soft);
+}
+
+.text-cell-field::placeholder {
+  color: var(--ink-faint);
+}
+
+.text-cell-field-title {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  padding-top: 10px;
+}
+
+.text-cell-field-section {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 700;
+  color: #274a7d;
+  padding-top: 6px;
+}
+
+.text-cell-field-text {
+  font-family: var(--font-ui);
+  font-size: 14.5px;
+  line-height: 1.55;
+}

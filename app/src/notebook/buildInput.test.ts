@@ -40,4 +40,32 @@ describe("buildInputForCell", () => {
     expect(bindingsForCell(low)).toEqual({ c: 0 });
     expect(bindingsForCell(high)).toEqual({ c: 2 });
   });
+
+  it("a linear-source cell (Ask AI insertions) is used as-is, skipping LaTeX translation", () => {
+    // Square brackets and multi-letter identifiers like "NDSolve" and
+    // "Sin" are not part of the LaTeX subset translateLatexToWL supports,
+    // so this would throw a TranslatorParseError if it went through the
+    // normal path (see notebook/types.ts, InputCell.sourceKind).
+    const cell: InputCell = {
+      id: "cell-ai",
+      kind: "input",
+      latex: "NDSolve[{x''[t] + 0.3 x'[t] + Sin[x[t]] == 0, x[0] == 2, x'[0] == 0}, x, {t, 0, 20}]",
+      sourceKind: "linear",
+      status: "idle",
+      result: null,
+    };
+    expect(buildInputForCell(cell)).toBe(cell.latex);
+  });
+
+  it("trims a linear-source cell's surrounding whitespace", () => {
+    const cell: InputCell = {
+      id: "cell-ai-2",
+      kind: "input",
+      latex: "  Sin[x]  ",
+      sourceKind: "linear",
+      status: "idle",
+      result: null,
+    };
+    expect(buildInputForCell(cell)).toBe("Sin[x]");
+  });
 });

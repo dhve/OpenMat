@@ -1,48 +1,115 @@
+/* Flat, borderless cells flush against the white page: the right-edge
+   bracket rail is what marks a cell (or an In/Out group) out, not a card. */
+
 .cell {
-  background: var(--surface);
-  border: 1px solid var(--rule-soft);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-cell);
-  margin-bottom: 18px;
-  overflow: hidden;
-}
-
-.cell-title {
+  position: relative;
   background: transparent;
-  border: none;
-  box-shadow: none;
-  margin-bottom: 26px;
-  padding: 4px 4px 0;
 }
 
-.cell-title h1 {
-  font-family: var(--font-serif);
-  font-size: 30px;
-  font-weight: 600;
-  color: var(--ink);
-  margin: 0;
-  letter-spacing: -0.01em;
-}
-
-.cell-input-row {
+.cell-row {
+  position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 4px;
-  padding: 6px 8px 6px 4px;
 }
 
-.cell-prompt {
+.cell-row-input {
+  padding: 5px 24px 5px 0;
+}
+
+.cell-row-output {
+  padding: 0 24px 2px 0;
+}
+
+.cell-row-text {
+  padding: 2px 28px 2px 16px;
+}
+
+.cell-label {
   flex-shrink: 0;
-  width: 30px;
-  padding-top: 12px;
+  width: 58px;
+  padding-top: 11px;
+  padding-right: 8px;
   text-align: right;
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--ink-faint);
+  font-size: 12px;
+  color: var(--accent);
+  opacity: 0.82;
   user-select: none;
 }
 
-.cell-input-row .mathfield-host {
+.cell-label-out {
+  padding-top: 13px;
+}
+
+.cell-row-input .mathfield-host {
   flex: 1;
   min-width: 0;
+}
+
+.cell-row-output .output-cell {
+  flex: 1;
+  min-width: 0;
+}
+
+/* --- Bracket rail --------------------------------------------------- */
+/* Two nested pieces: a per-row bracket sized to just that row (In or Out),
+   and one outer bracket spanning the whole cell (In + Manipulate + Out),
+   echoing Mathematica's cell-group bracket nesting. Both stretch to their
+   positioned ancestor's height via top:0;bottom:0, so no JS measurement is
+   needed even though row heights vary (a plot output vs. a one-line
+   result). */
+
+.cell-bracket {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  cursor: pointer;
+}
+
+.cell-bracket::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 0;
+  width: 7px;
+  border-top: 1.5px solid var(--rule);
+  border-right: 1.5px solid var(--rule);
+  border-bottom: 1.5px solid var(--rule);
+  border-radius: 0 3px 3px 0;
+  transition: border-color 0.1s ease;
+}
+
+.cell-bracket-row {
+  right: 13px;
+  width: 8px;
+}
+
+.cell-bracket-outer {
+  right: 0;
+  width: 11px;
+}
+
+.cell-row:hover .cell-bracket-row::before {
+  border-color: var(--accent);
+}
+
+.cell:hover > .cell-bracket-outer::before,
+.cell-selected > .cell-bracket-outer::before {
+  border-color: var(--accent);
+}
+
+.cell-selected > .cell-bracket-outer::before {
+  border-width: 2px;
+}
+
+/* --- Text cells (Title / Section / Text) ----------------------------- */
+
+.cell-title,
+.cell-section {
+  margin-top: 2px;
+}
+
+.cell-text .cell-row-text {
+  padding-top: 4px;
 }

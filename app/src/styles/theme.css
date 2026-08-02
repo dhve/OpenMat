@@ -1,37 +1,40 @@
-/* OpenMat theme: calm, textbook-like, restrained color.
-   One warm off-white paper tone, ink-colored type and axes, a small
-   deliberate accent palette used only where it earns its keep (curves,
-   focus states, the evaluate affordance). */
+/* OpenMat theme: a Mathematica-style notebook skin. White page, black ink,
+   the classic blue-tinted monospace In[n]:=/Out[n]= cell labels, serif
+   Title/Section styling, and flat, borderless cells (the right-edge cell
+   bracket is what marks a cell's extent, not a card outline). */
 
 :root {
-  --paper: #f2ede0;
-  --surface: #fffdf8;
+  --paper: #ffffff;
+  --surface: #ffffff;
   --surface-raised: #ffffff;
 
-  --ink: #29261e;
-  --ink-soft: #6c6656;
-  --ink-faint: #9a927c;
+  --ink: #1a1a1a;
+  --ink-soft: #545454;
+  --ink-faint: #9a9a9a;
 
-  --rule: #ddd2b8;
-  --rule-soft: #e9e0cc;
-  --grid: #e7dfc9;
+  --rule: #c9c9c9;
+  --rule-soft: #e6e6e6;
+  --grid: #e5e5e5;
 
-  --accent: #2f5f8f;
+  /* The classic blue used for In[n]:=/Out[n]= labels, selection, and the
+     evaluate affordance. --accent-2/-3 round out a muted Plot-style curve
+     cycle (blue, burnt orange, green) instead of anything saturated. */
+  --accent: #3b5fa4;
   --accent-ink: #ffffff;
-  --accent-soft: #e4ecf3;
-  --accent-2: #9c3f3a;
-  --accent-3: #5c7a4f;
+  --accent-soft: #eaf0fa;
+  --accent-2: #c1652c;
+  --accent-3: #4f8f57;
 
-  --error-bg: #fbecea;
-  --error-border: #dba39c;
-  --error-ink: #8a3226;
+  --error-bg: #fdecea;
+  --error-border: #e3a49c;
+  --error-ink: #a3291d;
 
-  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
-  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  --font-mono: "SF Mono", Menlo, Consolas, monospace;
+  --font-serif: "Times New Roman", Times, "Nimbus Roman No9 L", Georgia, serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "Courier New", Courier, "SF Mono", Menlo, Consolas, monospace;
 
-  --radius: 6px;
-  --shadow-cell: 0 1px 2px rgba(41, 38, 30, 0.06), 0 1px 0 rgba(41, 38, 30, 0.03);
+  --radius: 3px;
+  --shadow-cell: none;
 }
 
 * {

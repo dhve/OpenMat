@@ -20,9 +20,13 @@ const PENDULUM_T1 = 20;
  * substitution"; specs/m0-milestone.md row 3).
  *
  * Throws TranslatorParseError if the LaTeX does not parse.
+ *
+ * A cell with sourceKind "linear" (inserted via window.__openmat_insert_cell
+ * by the Ask AI feature) already holds WL linear syntax, not LaTeX, and
+ * skips translation entirely; see InputCell.sourceKind in notebook/types.ts.
  */
 export function buildInputForCell(cell: InputCell): string {
-  const core = translateLatexToWL(cell.latex);
+  const core = cell.sourceKind === "linear" ? cell.latex.trim() : translateLatexToWL(cell.latex);
   if (!cell.manipulate) return core;
   return `NDSolve[{${core}, x[0] == ${PENDULUM_X0}, x'[0] == ${PENDULUM_V0}}, x, {t, 0, ${PENDULUM_T1}}]`;
 }

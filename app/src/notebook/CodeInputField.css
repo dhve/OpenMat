@@ -1,0 +1,26 @@
+.code-input-field {
+  display: block;
+  width: 100%;
+  min-height: 32px;
+  resize: none;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 7px 9px;
+}
+
+.code-input-field:focus {
+  border-color: var(--accent);
+  background: var(--surface-raised);
+  outline: none;
+}
+
+.code-input-field::placeholder {
+  color: var(--ink-faint);
+}

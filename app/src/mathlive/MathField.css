@@ -17,6 +17,9 @@
 .openmat-mathfield:focus-within {
   border-color: var(--accent);
   background: var(--surface-raised);
+  /* Replaced by the border/background change above: the browser's default
+     focus ring color is out of our control and does not follow the theme. */
+  outline: none;
 }
 
 .openmat-mathfield::part(menu-toggle) {
