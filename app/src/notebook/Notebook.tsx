@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Cell } from "./Cell";
 import { nextCellId } from "./id";
-import { buildInputForCell } from "./buildInput";
-import { evaluate } from "../engine";
+import { bindingsForCell, buildInputForCell } from "./buildInput";
+import { evaluate, kernelResultToView } from "../engine";
+import { createRequestClient, type RequestClient } from "../engine/requestClient";
 import { TranslatorParseError } from "../mathlive/translator";
 import type { MathFieldHandle } from "../mathlive/MathField";
 import type { InputCell, NotebookCellData } from "./types";
@@ -21,6 +22,21 @@ export function Notebook({ initialCells }: NotebookProps) {
   const fieldHandles = useRef(new Map<string, MathFieldHandle>());
   const pendingFocusId = useRef<string | null>(null);
   const [initialFocusId] = useState(() => initialCells.find(isInputCell)?.id ?? null);
+
+  // One request client per cell, so latest-result-wins tracking (see
+  // engine/requestClient.ts) is scoped per cell rather than globally: a slow
+  // re-evaluate in one cell must never be able to mark a fast response in an
+  // unrelated cell as stale. Dependency tracking is cell-level in M0
+  // (ARCHITECTURE.md, "Manipulate: typed bindings, not text substitution").
+  const requestClients = useRef(new Map<string, RequestClient>());
+  const clientForCell = (id: string): RequestClient => {
+    let client = requestClients.current.get(id);
+    if (!client) {
+      client = createRequestClient(evaluate);
+      requestClients.current.set(id, client);
+    }
+    return client;
+  };
 
   useEffect(() => {
     if (pendingFocusId.current) {
@@ -64,7 +80,11 @@ export function Notebook({ initialCells }: NotebookProps) {
       return;
     }
 
-    const result = await evaluate(input);
+    const bindings = bindingsForCell(cell);
+    const kernelResult = await clientForCell(id)(input, bindings);
+    if (kernelResult === null) return; // a newer request for this cell has already landed
+
+    const result = kernelResultToView(kernelResult);
     updateCell(id, { status: result.error ? "error" : "done", result });
   };
 

@@ -1,46 +1,21 @@
-// App-to-kernel contract (ARCHITECTURE.md): one command, evaluate(input) ->
-// EvalResult. Field names match the TypeScript EvalResult type in
-// src/engine/types.ts exactly (x_range, y_range stay snake_case).
+// App-to-kernel contract (ARCHITECTURE.md, "Kernel API"): evaluate(input,
+// bindings, request_id) -> KernelResult. This is the local adapter
+// (ARCHITECTURE.md, "Kernel service and transport adapters"): it owns no
+// evaluation semantics or result formatting itself, it just calls
+// openmat-kernel in-process and hands back what it returns.
 //
-// This is a placeholder until openmat-kernel is wired in. The UI runs on
-// its own TypeScript mockEngine today (src/engine/mockEngine.ts) and does
-// not call this command; it exists so the IPC shape is already in place for
-// integration, and so the desktop shell has something real to compile and
-// serialize.
+// Tauri camelCases Rust parameter names by default when matching the JS
+// invoke() payload, so `request_id` here is reached from the frontend as
+// `requestId`; no `rename_all` needed. See src/engine/tauriEngine.ts for the
+// JS side of this call.
 
-use serde::Serialize;
+use std::collections::HashMap;
 
-#[derive(Serialize)]
-struct Curve {
-    points: Vec<(f64, f64)>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    label: Option<String>,
-}
-
-#[derive(Serialize)]
-struct PlotData {
-    curves: Vec<Curve>,
-    x_range: (f64, f64),
-    y_range: (f64, f64),
-}
-
-#[derive(Serialize)]
-struct EvalResult {
-    latex: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    plot: Option<PlotData>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    error: Option<String>,
-}
+use openmat_kernel::KernelResult;
 
 #[tauri::command]
-fn evaluate(input: String) -> EvalResult {
-    let _ = input;
-    EvalResult {
-        latex: String::new(),
-        plot: None,
-        error: Some("openmat-kernel is not wired up yet; the UI runs on its own mock engine.".to_string()),
-    }
+fn evaluate(input: String, bindings: HashMap<String, f64>, request_id: u64) -> KernelResult {
+    openmat_kernel::evaluate_with_bindings(&input, &bindings, request_id)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

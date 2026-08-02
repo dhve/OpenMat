@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createDefaultNotebook } from "./defaultNotebook";
-import { buildInputForCell } from "../notebook/buildInput";
-import { evaluate } from "../engine";
+import { bindingsForCell, buildInputForCell } from "../notebook/buildInput";
+import { evaluate, kernelResultToView } from "../engine";
 import type { InputCell } from "../notebook/types";
 
 describe("default demo notebook", () => {
@@ -13,16 +13,18 @@ describe("default demo notebook", () => {
     expect(pendulum.manipulate).toMatchObject({ name: "c", min: 0, max: 2 });
   });
 
-  it("goes end to end: MathLive latex -> WL input -> mock engine -> plot", async () => {
+  it("goes end to end: MathLive latex -> WL input (c symbolic) -> typed binding -> mock engine -> plot", async () => {
     const cells = createDefaultNotebook();
     const pendulum = cells[1] as InputCell;
 
     const input = buildInputForCell(pendulum);
-    expect(input).toBe(
-      "NDSolve[{x''[t] + 0.3 x'[t] + Sin[x[t]] == 0, x[0] == 2, x'[0] == 0}, x, {t, 0, 20}]",
-    );
+    expect(input).toBe("NDSolve[{x''[t] + c x'[t] + Sin[x[t]] == 0, x[0] == 2, x'[0] == 0}, x, {t, 0, 20}]");
+    const bindings = bindingsForCell(pendulum);
+    expect(bindings).toEqual({ c: 0.3 });
 
-    const result = await evaluate(input);
+    const kernelResult = await evaluate(input, bindings, 1);
+    expect(kernelResult.status).toBe("ok");
+    const result = kernelResultToView(kernelResult);
     expect(result.error).toBeUndefined();
     expect(result.plot).toBeDefined();
     expect(result.plot!.curves[0].points.length).toBeGreaterThan(100);

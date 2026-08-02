@@ -1,5 +1,5 @@
 //! NDSolve dispatch: turns `NDSolve[{eqs...}, x, {t, t0, t1}]` into an
-//! `openmat_solve::OdeProblem` and back into a plottable [`crate::EvalResult`].
+//! `openmat_solve::OdeProblem` and back into a plottable [`NdsolveOutcome`].
 //!
 //! Supported shapes: scalar first order (`x'[t] == f(t, x[t])`, one initial
 //! condition `x[t0] == a`) and scalar second order (`x''[t] + ... == 0`, two
@@ -21,9 +21,19 @@
 use openmat_core::{replace_all, to_latex, Evaluator, Expr};
 use openmat_solve::{solve_default, OdeProblem};
 
-use crate::{Curve, EvalResult, PlotData};
+use crate::Curve;
 
 const N_OUTPUT_POINTS: usize = 400;
+
+/// What a successful NDSolve produces: the typeset equation system and the
+/// solved trajectory, ready for the kernel to wrap into `Display`s.
+#[derive(Debug)]
+pub(crate) struct NdsolveOutcome {
+    pub latex: String,
+    pub curves: Vec<Curve>,
+    pub x_range: (f64, f64),
+    pub y_range: (f64, f64),
+}
 
 /// Symbols used only inside this module to stand in for the unknown
 /// function's value, its derivatives, and the independent variable while a
@@ -50,8 +60,8 @@ fn is_known_symbol(name: &str) -> bool {
 }
 
 /// Handle `expr` (already confirmed to have head `NDSolve`), returning either
-/// a ready `EvalResult` with a plot, or a human readable error message.
-pub fn solve(expr: &Expr) -> Result<EvalResult, String> {
+/// a ready [`NdsolveOutcome`], or a human readable error message.
+pub(crate) fn solve(expr: &Expr) -> Result<NdsolveOutcome, String> {
     let (_head, args) = expr.as_normal().expect("caller checked head is NDSolve");
     if args.len() != 3 {
         return Err(format!("NDSolve expects 3 arguments (equations, function, {{t, t0, t1}}), got {}", args.len()));
@@ -186,11 +196,7 @@ pub fn solve(expr: &Expr) -> Result<EvalResult, String> {
 
     let latex = to_latex(&args[0]);
 
-    Ok(EvalResult {
-        latex,
-        plot: Some(PlotData { curves: vec![Curve { points, label: Some(format!("{var}(t)")) }], x_range: (t0, t1), y_range }),
-        error: None,
-    })
+    Ok(NdsolveOutcome { latex, curves: vec![Curve { points, label: Some(format!("{var}(t)")) }], x_range: (t0, t1), y_range })
 }
 
 /// Bind the function value, its first derivative, and the independent
@@ -348,17 +354,15 @@ mod tests {
     fn damped_pendulum_with_c_bound_produces_plot() {
         let e = ndsolve_expr("NDSolve[{x''[t] + 0.5 x'[t] + Sin[x[t]] == 0, x[0] == 2, x'[0] == 0}, x, {t, 0, 20}]");
         let result = solve(&e).expect("should solve");
-        assert!(result.error.is_none());
-        let plot = result.plot.expect("should have a plot");
-        assert_eq!(plot.curves.len(), 1);
-        assert_eq!(plot.curves[0].points.len(), 400);
-        let first = plot.curves[0].points[0];
+        assert_eq!(result.curves.len(), 1);
+        assert_eq!(result.curves[0].points.len(), 400);
+        let first = result.curves[0].points[0];
         assert!((first.0 - 0.0).abs() < 1e-9);
         assert!((first.1 - 2.0).abs() < 1e-9);
 
         // Decaying oscillation: a local max well after the start should sit
         // below the initial amplitude.
-        let pts = &plot.curves[0].points;
+        let pts = &result.curves[0].points;
         let mut found_late_max_below_start = false;
         for i in 1..pts.len() - 1 {
             let (t, x) = pts[i];
@@ -374,8 +378,7 @@ mod tests {
     fn harmonic_oscillator_matches_cosine() {
         let e = ndsolve_expr("NDSolve[{x''[t] + x[t] == 0, x[0] == 1, x'[0] == 0}, x, {t, 0, 6.28}]");
         let result = solve(&e).expect("should solve");
-        let plot = result.plot.expect("should have a plot");
-        let (t_at_pi, x_at_pi) = plot.curves[0]
+        let (t_at_pi, x_at_pi) = result.curves[0]
             .points
             .iter()
             .copied()
@@ -389,8 +392,7 @@ mod tests {
     fn first_order_decay_matches_exp() {
         let e = ndsolve_expr("NDSolve[{x'[t] == -x[t], x[0] == 1}, x, {t, 0, 1}]");
         let result = solve(&e).expect("should solve");
-        let plot = result.plot.expect("should have a plot");
-        let last = *plot.curves[0].points.last().unwrap();
+        let last = *result.curves[0].points.last().unwrap();
         assert!((last.0 - 1.0).abs() < 1e-9);
         assert!((last.1 - std::f64::consts::E.recip()).abs() < 1e-3, "x(1) = {}", last.1);
     }
