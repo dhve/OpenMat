@@ -4,6 +4,12 @@ A fully open-source variant of Wolfram Mathematica: a WL-shaped language kernel 
 
 Status: pre-M0, in active development. The first release gate is the flagship demo: open the Damped Pendulum notebook, edit the equation in 2D input, drag the damping slider, and watch the ODE re-solve and re-render live. See [specs/m0-milestone.md](specs/m0-milestone.md) for the authoritative scope and acceptance criteria.
 
+What works today, typed straight into a notebook cell exactly as in Mathematica: arithmetic and simplification, `Plot` / `ListPlot` with adaptive sampling, `NDSolve` (first and second order scalar ODEs), `D`, `Integrate` (including typed integrals with bounds), `Solve`, `Expand`, `Factor`, `Simplify`, equations (`x^2 + y^2 == 4`), rules (`->`), and a persistent kernel session: `a = 5` and `f[x_] := x^2` stay defined across cells until `Clear`. The same Rust kernel runs everywhere: in-process on desktop, compiled to WebAssembly in the browser build. AI cells (Ask AI) turn natural language into reviewable WL code using your own Anthropic key or a local Ollama model.
+
+## Installing the desktop app
+
+Grab the `.dmg` from Releases (or build it yourself, below), open it, and drag OpenMat to Applications. The build is unsigned, so the first launch needs right-click on OpenMat.app, then Open, then Open again in the dialog. macOS remembers after that.
+
 ## Layout
 
 | Path | What it is |
@@ -40,6 +46,18 @@ Run the desktop app in dev mode:
 
 ```bash
 cd app && npm run tauri dev
+```
+
+Package the installable `.dmg` (lands in `app/src-tauri/target/release/bundle/dmg/`):
+
+```bash
+cd app && npm run tauri build
+```
+
+Rebuild the browser kernel after touching crate code (needs the `wasm32-unknown-unknown` target; the committed `app/public/openmat_kernel.wasm` is current otherwise):
+
+```bash
+cd app && npm run build:wasm
 ```
 
 ## Design ground rules
