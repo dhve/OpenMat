@@ -7,6 +7,7 @@ repository.workspace = true
 
 [features]
 default = ["sundials"]
-sundials = []
+sundials = ["dep:sundials-sys"]
 
 [dependencies]
+sundials-sys = { version = "0.5", features = ["build_libraries"], optional = true }
