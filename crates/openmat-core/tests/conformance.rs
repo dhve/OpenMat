@@ -1,4 +1,5 @@
-//! Grammar conformance suite: replays specs/fixtures/grammar-v0.1.txt.
+//! Grammar conformance suite: replays specs/fixtures/grammar-v0.1.txt and
+//! specs/fixtures/grammar-v0.2.txt.
 //!
 //! Each fixture line is `input || canonical InputForm || LaTeX`. For each:
 //! parse the input, check its printed form, re-parse the printed form and
@@ -7,12 +8,14 @@
 
 use openmat_core::{parse, to_latex, Evaluator};
 
-const FIXTURES: &str = include_str!("../../../specs/fixtures/grammar-v0.1.txt");
+const FIXTURES_V01: &str = include_str!("../../../specs/fixtures/grammar-v0.1.txt");
+const FIXTURES_V02: &str = include_str!("../../../specs/fixtures/grammar-v0.2.txt");
 
-#[test]
-fn grammar_fixtures_parse_print_roundtrip_and_latex() {
+/// Replay every fixture line in `fixtures`, returning how many were checked
+/// (blank lines and `#` comments don't count).
+fn run_fixtures(fixtures: &str) -> usize {
     let mut checked = 0;
-    for (lineno, line) in FIXTURES.lines().enumerate() {
+    for (lineno, line) in fixtures.lines().enumerate() {
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') {
             continue;
@@ -42,5 +45,17 @@ fn grammar_fixtures_parse_print_roundtrip_and_latex() {
         assert_eq!(to_latex(&expr), expected_latex, "latex mismatch for {input:?}");
         checked += 1;
     }
-    assert!(checked >= 20, "expected at least 20 fixtures, replayed {checked}");
+    checked
+}
+
+#[test]
+fn grammar_v01_fixtures_parse_print_roundtrip_and_latex() {
+    let checked = run_fixtures(FIXTURES_V01);
+    assert!(checked >= 20, "expected at least 20 v0.1 fixtures, replayed {checked}");
+}
+
+#[test]
+fn grammar_v02_fixtures_parse_print_roundtrip_and_latex() {
+    let checked = run_fixtures(FIXTURES_V02);
+    assert!(checked >= 15, "expected at least 15 v0.2 fixtures, replayed {checked}");
 }

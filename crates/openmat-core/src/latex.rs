@@ -61,6 +61,12 @@ const GREEK: &[(&str, &str)] = &[
 ];
 
 fn render_symbol(name: &str) -> String {
+    // Pi is a named mathematical constant, not a user symbol that happens to
+    // share a name with the Greek letter: always the lowercase glyph,
+    // regardless of the capital-letter-triggers-\Pi rule below.
+    if name == "Pi" {
+        return "\\pi".to_string();
+    }
     for (plain, cmd) in GREEK {
         if name.eq_ignore_ascii_case(plain) {
             return if name.chars().next().unwrap().is_uppercase() {
@@ -147,6 +153,17 @@ fn render_normal(head: &Expr, args: &[Expr], whole: &Expr) -> String {
             }
             "Rule" if args.len() == 2 => return format!("{} \\to {}", render(&args[0]), render(&args[1])),
             "Equal" if args.len() == 2 => return format!("{} = {}", render(&args[0]), render(&args[1])),
+            "Less" if args.len() == 2 => return format!("{} < {}", render(&args[0]), render(&args[1])),
+            "Greater" if args.len() == 2 => return format!("{} > {}", render(&args[0]), render(&args[1])),
+            "LessEqual" if args.len() == 2 => return format!("{} \\leq {}", render(&args[0]), render(&args[1])),
+            "GreaterEqual" if args.len() == 2 => return format!("{} \\geq {}", render(&args[0]), render(&args[1])),
+            "Unequal" if args.len() == 2 => return format!("{} \\neq {}", render(&args[0]), render(&args[1])),
+            "Set" if args.len() == 2 => return format!("{} = {}", render(&args[0]), render(&args[1])),
+            "SetDelayed" if args.len() == 2 => return format!("{} := {}", render(&args[0]), render(&args[1])),
+            "Blank" => return format!("\\_{}", blank_type_suffix(args)),
+            "BlankSequence" => return format!("\\_\\_{}", blank_type_suffix(args)),
+            "BlankNullSequence" => return format!("\\_\\_\\_{}", blank_type_suffix(args)),
+            "Pattern" if args.len() == 2 => return format!("{}{}", render(&args[0]), render(&args[1])),
             "Sin" | "Cos" | "Tan" | "Cot" | "Sec" | "Csc" if args.len() == 1 => {
                 return format!("\\{}\\left({}\\right)", name.to_lowercase(), render(&args[0]));
             }
@@ -291,6 +308,17 @@ fn needs_parens_as_power_base(e: &Expr) -> bool {
     }
 }
 
+/// The type-restriction name for `Blank[head]` etc., or empty for the
+/// untyped form. Mirrors `expr.rs`'s helper of the same name; kept separate
+/// since LaTeX and InputForm rendering are deliberately independent (see
+/// this module's doc comment).
+fn blank_type_suffix(args: &[Expr]) -> String {
+    match args {
+        [Expr::Symbol(s)] => s.clone(),
+        _ => String::new(),
+    }
+}
+
 fn derivative_form(e: &Expr) -> Option<(i64, &Expr, &[Expr])> {
     let (outer_head, call_args) = e.as_normal()?;
     let (mid_head, f_args) = outer_head.as_normal()?;
@@ -388,6 +416,25 @@ mod tests {
     fn equal_and_rule() {
         assert_eq!(to_latex(&Expr::equal(Expr::symbol("x"), Expr::integer(1))), "x = 1");
         assert_eq!(to_latex(&Expr::rule(Expr::symbol("x"), Expr::integer(1))), "x \\to 1");
+    }
+
+    #[test]
+    fn pi_renders_lowercase_regardless_of_capitalization_rule() {
+        assert_eq!(to_latex(&Expr::symbol("Pi")), "\\pi");
+    }
+
+    #[test]
+    fn pattern_forms_render() {
+        assert_eq!(to_latex(&Expr::blank()), "\\_");
+        assert_eq!(to_latex(&Expr::blank_typed("Integer")), "\\_Integer");
+        assert_eq!(to_latex(&Expr::named_pattern("x", Expr::blank())), "x\\_");
+    }
+
+    #[test]
+    fn comparison_and_assignment_render() {
+        assert_eq!(to_latex(&Expr::less(Expr::symbol("a"), Expr::symbol("b"))), "a < b");
+        assert_eq!(to_latex(&Expr::less_equal(Expr::symbol("a"), Expr::symbol("b"))), "a \\leq b");
+        assert_eq!(to_latex(&Expr::set(Expr::symbol("a"), Expr::integer(5))), "a = 5");
     }
 
     #[test]

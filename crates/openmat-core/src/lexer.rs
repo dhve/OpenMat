@@ -13,9 +13,22 @@ pub enum TokenKind {
     Star,
     Slash,
     Caret,
+    Equal,
     EqualEqual,
+    ColonEqual,
+    NotEqual,
+    Less,
+    Greater,
+    LessEqual,
+    GreaterEqual,
     Arrow,
+    MapArrow,
     Prime,
+    /// A run of one, two, or three underscores: `_` (Blank), `__`
+    /// (BlankSequence), `___` (BlankNullSequence). Lexed as a single token
+    /// (rather than as identifier characters) so the parser can recognize
+    /// pattern surface syntax; see `specs/grammar.md` v0.2 section 1.
+    Blank(u8),
     LParen,
     RParen,
     LBracket,
@@ -90,8 +103,47 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// Skip whitespace and `(* ... *)` comments, alternating between the two
+    /// until neither consumes anything, so `  (* a *) (* b *)  x` skips
+    /// cleanly to `x`. Comments nest: `(* outer (* inner *) still *)` is one
+    /// comment.
+    fn skip_trivia(&mut self) -> Result<(), LexError> {
+        loop {
+            let before = self.pos;
+            self.skip_whitespace();
+            if self.peek_byte() == Some(b'(') && self.peek_at(1) == Some(b'*') {
+                self.skip_comment()?;
+            }
+            if self.pos == before {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn skip_comment(&mut self) -> Result<(), LexError> {
+        let start = self.pos;
+        self.pos += 2; // consume the opening "(*"
+        let mut depth = 1u32;
+        while depth > 0 {
+            match (self.peek_byte(), self.peek_at(1)) {
+                (Some(b'('), Some(b'*')) => {
+                    self.pos += 2;
+                    depth += 1;
+                }
+                (Some(b'*'), Some(b')')) => {
+                    self.pos += 2;
+                    depth -= 1;
+                }
+                (Some(_), _) => self.pos += 1,
+                (None, _) => return Err(LexError { message: "unterminated comment".to_string(), pos: start }),
+            }
+        }
+        Ok(())
+    }
+
     fn next_token(&mut self) -> Result<Token, LexError> {
-        self.skip_whitespace();
+        self.skip_trivia()?;
         let start = self.pos;
         let b = match self.peek_byte() {
             None => return Ok(Token { kind: TokenKind::Eof, pos: start }),
@@ -103,6 +155,9 @@ impl<'a> Lexer<'a> {
         }
         if b == b'"' {
             return self.lex_string();
+        }
+        if b == b'_' {
+            return self.lex_underscore();
         }
         if is_symbol_start(b) {
             return self.lex_symbol();
@@ -127,8 +182,13 @@ impl<'a> Lexer<'a> {
                 TokenKind::Star
             }
             b'/' => {
-                self.pos += 1;
-                TokenKind::Slash
+                if self.peek_at(1) == Some(b'@') {
+                    self.pos += 2;
+                    TokenKind::MapArrow
+                } else {
+                    self.pos += 1;
+                    TokenKind::Slash
+                }
             }
             b'^' => {
                 self.pos += 1;
@@ -139,10 +199,42 @@ impl<'a> Lexer<'a> {
                     self.pos += 2;
                     TokenKind::EqualEqual
                 } else {
-                    return Err(LexError {
-                        message: "unexpected '='; did you mean '=='?".to_string(),
-                        pos: start,
-                    });
+                    self.pos += 1;
+                    TokenKind::Equal
+                }
+            }
+            b':' => {
+                if self.peek_at(1) == Some(b'=') {
+                    self.pos += 2;
+                    TokenKind::ColonEqual
+                } else {
+                    return Err(LexError { message: "unexpected ':'; did you mean ':='?".to_string(), pos: start });
+                }
+            }
+            b'!' => {
+                if self.peek_at(1) == Some(b'=') {
+                    self.pos += 2;
+                    TokenKind::NotEqual
+                } else {
+                    return Err(LexError { message: "unexpected '!'; did you mean '!='?".to_string(), pos: start });
+                }
+            }
+            b'<' => {
+                if self.peek_at(1) == Some(b'=') {
+                    self.pos += 2;
+                    TokenKind::LessEqual
+                } else {
+                    self.pos += 1;
+                    TokenKind::Less
+                }
+            }
+            b'>' => {
+                if self.peek_at(1) == Some(b'=') {
+                    self.pos += 2;
+                    TokenKind::GreaterEqual
+                } else {
+                    self.pos += 1;
+                    TokenKind::Greater
                 }
             }
             b'\'' => {
@@ -288,6 +380,25 @@ impl<'a> Lexer<'a> {
         Ok(Token { kind: TokenKind::Str(out), pos: start })
     }
 
+    /// Lex a run of one to three underscores into `Blank(1|2|3)`: `_`, `__`,
+    /// `___`. Real Wolfram Language never treats `_` as an identifier
+    /// character, so unlike v0.1 this is not folded into `lex_symbol`.
+    fn lex_underscore(&mut self) -> Result<Token, LexError> {
+        let start = self.pos;
+        let mut count: u8 = 0;
+        while self.peek_byte() == Some(b'_') {
+            self.pos += 1;
+            count += 1;
+            if count > 3 {
+                return Err(LexError {
+                    message: "too many consecutive underscores in a pattern (at most ___ is meaningful)".to_string(),
+                    pos: start,
+                });
+            }
+        }
+        Ok(Token { kind: TokenKind::Blank(count), pos: start })
+    }
+
     fn lex_symbol(&mut self) -> Result<Token, LexError> {
         let start = self.pos;
         self.pos += 1;
@@ -299,12 +410,15 @@ impl<'a> Lexer<'a> {
     }
 }
 
+/// `_` is deliberately excluded: real Wolfram Language never treats it as an
+/// identifier character (it lexes as pattern syntax, [`lex_underscore`]).
+/// `$` stays valid, matching WL's context-mark convention.
 fn is_symbol_start(b: u8) -> bool {
-    b.is_ascii_alphabetic() || b == b'_' || b == b'$'
+    b.is_ascii_alphabetic() || b == b'$'
 }
 
 fn is_symbol_continue(b: u8) -> bool {
-    b.is_ascii_alphanumeric() || b == b'_' || b == b'$'
+    b.is_ascii_alphanumeric() || b == b'$'
 }
 
 #[cfg(test)]
@@ -359,5 +473,59 @@ mod tests {
     fn bad_character_reports_position() {
         let err = Lexer::new("1 @ 2").tokenize().unwrap_err();
         assert_eq!(err.pos, 2);
+    }
+
+    #[test]
+    fn underscore_no_longer_an_identifier_character() {
+        assert_eq!(kinds("_"), vec![TokenKind::Blank(1), TokenKind::Eof]);
+        assert_eq!(kinds("__"), vec![TokenKind::Blank(2), TokenKind::Eof]);
+        assert_eq!(kinds("___"), vec![TokenKind::Blank(3), TokenKind::Eof]);
+        // "x_" is two adjacent tokens now, not one identifier "x_".
+        assert_eq!(kinds("x_"), vec![TokenKind::Symbol("x".to_string()), TokenKind::Blank(1), TokenKind::Eof]);
+    }
+
+    #[test]
+    fn too_many_underscores_is_a_lex_error() {
+        let err = Lexer::new("____").tokenize().unwrap_err();
+        assert_eq!(err.pos, 0);
+    }
+
+    #[test]
+    fn dollar_still_an_identifier_character() {
+        assert_eq!(kinds("$Context"), vec![TokenKind::Symbol("$Context".to_string()), TokenKind::Eof]);
+    }
+
+    #[test]
+    fn comparison_and_assignment_operators() {
+        assert_eq!(
+            kinds("< > <= >= != = :="),
+            vec![
+                TokenKind::Less,
+                TokenKind::Greater,
+                TokenKind::LessEqual,
+                TokenKind::GreaterEqual,
+                TokenKind::NotEqual,
+                TokenKind::Equal,
+                TokenKind::ColonEqual,
+                TokenKind::Eof,
+            ]
+        );
+    }
+
+    #[test]
+    fn map_operator() {
+        assert_eq!(kinds("/@"), vec![TokenKind::MapArrow, TokenKind::Eof]);
+    }
+
+    #[test]
+    fn comments_are_skipped_including_nested() {
+        assert_eq!(kinds("(* hi *) 1"), vec![TokenKind::Integer(1), TokenKind::Eof]);
+        assert_eq!(kinds("1 (* a (* b *) c *) + 2"), kinds("1 + 2"));
+    }
+
+    #[test]
+    fn unterminated_comment_is_a_lex_error() {
+        let err = Lexer::new("(* never closed").tokenize().unwrap_err();
+        assert_eq!(err.pos, 0);
     }
 }

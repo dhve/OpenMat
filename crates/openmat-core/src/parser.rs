@@ -72,11 +72,32 @@ impl Parser {
     /// Entry point for a full expression: used at the top level and anywhere
     /// a subexpression is nested (parens, list items, function arguments).
     fn parse_expr(&mut self) -> Result<Expr, ParseError> {
-        self.parse_rule()
+        self.parse_assign()
+    }
+
+    /// `lhs = rhs` (`Set`) and `lhs := rhs` (`SetDelayed`): the loosest
+    /// binding forms, so `f[x_] := x^2` reads as "assign the whole rest of
+    /// the line as the definition." Right associative, so `a = b = 5`
+    /// chains as `Set[a, Set[b, 5]]`, matching Wolfram Language.
+    fn parse_assign(&mut self) -> Result<Expr, ParseError> {
+        let lhs = self.parse_rule()?;
+        match self.peek_kind() {
+            TokenKind::Equal => {
+                self.advance();
+                let rhs = self.parse_assign()?;
+                Ok(Expr::set(lhs, rhs))
+            }
+            TokenKind::ColonEqual => {
+                self.advance();
+                let rhs = self.parse_assign()?;
+                Ok(Expr::set_delayed(lhs, rhs))
+            }
+            _ => Ok(lhs),
+        }
     }
 
     fn parse_rule(&mut self) -> Result<Expr, ParseError> {
-        let lhs = self.parse_equal()?;
+        let lhs = self.parse_map()?;
         if *self.peek_kind() == TokenKind::Arrow {
             self.advance();
             let rhs = self.parse_rule()?; // right associative
@@ -85,12 +106,55 @@ impl Parser {
         Ok(lhs)
     }
 
+    /// `f /@ expr` (`Map`), a cheap infix spelling of `Map[f, expr]`. Sits
+    /// between `->` (looser) and the relational operators (tighter); see
+    /// specs/grammar.md v0.2 section 2.
+    fn parse_map(&mut self) -> Result<Expr, ParseError> {
+        let lhs = self.parse_equal()?;
+        if *self.peek_kind() == TokenKind::MapArrow {
+            self.advance();
+            let rhs = self.parse_map()?; // right associative
+            return Ok(Expr::call("Map", vec![lhs, rhs]));
+        }
+        Ok(lhs)
+    }
+
     fn parse_equal(&mut self) -> Result<Expr, ParseError> {
         let mut lhs = self.parse_additive()?;
-        while *self.peek_kind() == TokenKind::EqualEqual {
-            self.advance();
-            let rhs = self.parse_additive()?;
-            lhs = Expr::equal(lhs, rhs);
+        loop {
+            match self.peek_kind() {
+                TokenKind::EqualEqual => {
+                    self.advance();
+                    let rhs = self.parse_additive()?;
+                    lhs = Expr::equal(lhs, rhs);
+                }
+                TokenKind::NotEqual => {
+                    self.advance();
+                    let rhs = self.parse_additive()?;
+                    lhs = Expr::unequal(lhs, rhs);
+                }
+                TokenKind::Less => {
+                    self.advance();
+                    let rhs = self.parse_additive()?;
+                    lhs = Expr::less(lhs, rhs);
+                }
+                TokenKind::Greater => {
+                    self.advance();
+                    let rhs = self.parse_additive()?;
+                    lhs = Expr::greater(lhs, rhs);
+                }
+                TokenKind::LessEqual => {
+                    self.advance();
+                    let rhs = self.parse_additive()?;
+                    lhs = Expr::less_equal(lhs, rhs);
+                }
+                TokenKind::GreaterEqual => {
+                    self.advance();
+                    let rhs = self.parse_additive()?;
+                    lhs = Expr::greater_equal(lhs, rhs);
+                }
+                _ => break,
+            }
         }
         Ok(lhs)
     }
@@ -198,7 +262,22 @@ impl Parser {
             }
             TokenKind::Symbol(s) => {
                 self.advance();
+                let sym_end = tok.pos + s.len();
+                if let TokenKind::Blank(n) = *self.peek_kind() {
+                    if self.peek().pos == sym_end {
+                        let blank_tok = self.advance();
+                        let blank_end = blank_tok.pos + n as usize;
+                        let type_name = self.try_adjacent_symbol(blank_end);
+                        return Ok(Expr::named_pattern(s, build_blank(n, type_name)));
+                    }
+                }
                 Ok(Expr::symbol(s))
+            }
+            TokenKind::Blank(n) => {
+                self.advance();
+                let blank_end = tok.pos + n as usize;
+                let type_name = self.try_adjacent_symbol(blank_end);
+                Ok(build_blank(n, type_name))
             }
             TokenKind::Str(s) => {
                 self.advance();
@@ -218,6 +297,24 @@ impl Parser {
             }
             other => Err(ParseError { message: format!("unexpected {}", describe(&other)), pos: tok.pos }),
         }
+    }
+
+    /// If the next token is a `Symbol` immediately adjacent to `end_pos`
+    /// (no whitespace between), consume and return it: the type restriction
+    /// in `_Integer`, `x_Integer`, `__Real`, and so on. Adjacency (tracked
+    /// via byte positions, not a lexer-level fusion) is what lets `_Integer`
+    /// bind tighter than `_  Integer` (implicit multiplication of a bare
+    /// blank and a symbol), matching how real Wolfram Language treats
+    /// whitespace as significant around patterns.
+    fn try_adjacent_symbol(&mut self, end_pos: usize) -> Option<String> {
+        if let TokenKind::Symbol(name) = self.peek_kind() {
+            if self.peek().pos == end_pos {
+                let name = name.clone();
+                self.advance();
+                return Some(name);
+            }
+        }
+        None
     }
 
     fn parse_comma_list(&mut self, closing: &TokenKind) -> Result<Vec<Expr>, ParseError> {
@@ -240,7 +337,12 @@ impl Parser {
 fn starts_primary(kind: &TokenKind) -> bool {
     matches!(
         kind,
-        TokenKind::Integer(_) | TokenKind::Real(_) | TokenKind::Symbol(_) | TokenKind::Str(_) | TokenKind::LParen
+        TokenKind::Integer(_)
+            | TokenKind::Real(_)
+            | TokenKind::Symbol(_)
+            | TokenKind::Str(_)
+            | TokenKind::LParen
+            | TokenKind::Blank(_)
     )
 }
 
@@ -273,6 +375,21 @@ fn negate(e: Expr) -> Expr {
     }
 }
 
+/// Build the `Blank`/`BlankSequence`/`BlankNullSequence` expression for a
+/// lexed `Blank(n)` token (`n` underscores), with an optional adjacent type
+/// restriction symbol (`_Integer` and friends).
+fn build_blank(n: u8, type_name: Option<String>) -> Expr {
+    match (n, type_name) {
+        (1, Some(h)) => Expr::blank_typed(h),
+        (1, None) => Expr::blank(),
+        (2, Some(h)) => Expr::blank_sequence_typed(h),
+        (2, None) => Expr::blank_sequence(),
+        (3, Some(h)) => Expr::blank_null_sequence_typed(h),
+        (3, None) => Expr::blank_null_sequence(),
+        _ => unreachable!("lexer only emits Blank(1..=3)"),
+    }
+}
+
 fn describe(kind: &TokenKind) -> String {
     match kind {
         TokenKind::Integer(n) => format!("integer '{}'", n),
@@ -284,9 +401,23 @@ fn describe(kind: &TokenKind) -> String {
         TokenKind::Star => "'*'".to_string(),
         TokenKind::Slash => "'/'".to_string(),
         TokenKind::Caret => "'^'".to_string(),
+        TokenKind::Equal => "'='".to_string(),
         TokenKind::EqualEqual => "'=='".to_string(),
+        TokenKind::ColonEqual => "':='".to_string(),
+        TokenKind::NotEqual => "'!='".to_string(),
+        TokenKind::Less => "'<'".to_string(),
+        TokenKind::Greater => "'>'".to_string(),
+        TokenKind::LessEqual => "'<='".to_string(),
+        TokenKind::GreaterEqual => "'>='".to_string(),
         TokenKind::Arrow => "'->'".to_string(),
+        TokenKind::MapArrow => "'/@'".to_string(),
         TokenKind::Prime => "'\\''".to_string(),
+        TokenKind::Blank(n) => match n {
+            1 => "'_'".to_string(),
+            2 => "'__'".to_string(),
+            3 => "'___'".to_string(),
+            _ => "'_'".to_string(),
+        },
         TokenKind::LParen => "'('".to_string(),
         TokenKind::RParen => "')'".to_string(),
         TokenKind::LBracket => "'['".to_string(),
@@ -423,5 +554,87 @@ mod tests {
     fn error_on_unexpected_token() {
         let err = parse(")").unwrap_err();
         assert_eq!(err.pos, 0);
+    }
+
+    #[test]
+    fn bare_blank_forms() {
+        assert_eq!(p("_"), Expr::blank());
+        assert_eq!(p("_Integer"), Expr::blank_typed("Integer"));
+        assert_eq!(p("__"), Expr::blank_sequence());
+        assert_eq!(p("___"), Expr::blank_null_sequence());
+    }
+
+    #[test]
+    fn named_pattern_forms() {
+        assert_eq!(p("x_"), Expr::named_pattern("x", Expr::blank()));
+        assert_eq!(p("x_Integer"), Expr::named_pattern("x", Expr::blank_typed("Integer")));
+        assert_eq!(p("x__"), Expr::named_pattern("x", Expr::blank_sequence()));
+        assert_eq!(p("x___"), Expr::named_pattern("x", Expr::blank_null_sequence()));
+    }
+
+    #[test]
+    fn pattern_in_function_definition_shape() {
+        assert_eq!(
+            p("f[x_]"),
+            Expr::normal(Expr::symbol("f"), vec![Expr::named_pattern("x", Expr::blank())])
+        );
+        assert_eq!(
+            p("f[x_Integer, y_]"),
+            Expr::normal(
+                Expr::symbol("f"),
+                vec![
+                    Expr::named_pattern("x", Expr::blank_typed("Integer")),
+                    Expr::named_pattern("y", Expr::blank()),
+                ]
+            )
+        );
+    }
+
+    #[test]
+    fn whitespace_before_blank_breaks_adjacency() {
+        // "x _" is implicit multiplication of x and a bare blank, not a
+        // named pattern, since a space separates them.
+        assert_eq!(p("x _"), Expr::times(vec![Expr::symbol("x"), Expr::blank()]));
+    }
+
+    #[test]
+    fn comparison_operators_parse() {
+        assert_eq!(p("a < b"), Expr::less(Expr::symbol("a"), Expr::symbol("b")));
+        assert_eq!(p("a > b"), Expr::greater(Expr::symbol("a"), Expr::symbol("b")));
+        assert_eq!(p("a <= b"), Expr::less_equal(Expr::symbol("a"), Expr::symbol("b")));
+        assert_eq!(p("a >= b"), Expr::greater_equal(Expr::symbol("a"), Expr::symbol("b")));
+        assert_eq!(p("a != b"), Expr::unequal(Expr::symbol("a"), Expr::symbol("b")));
+    }
+
+    #[test]
+    fn set_and_set_delayed_parse() {
+        assert_eq!(p("a = 5"), Expr::set(Expr::symbol("a"), Expr::integer(5)));
+        assert_eq!(
+            p("f[x_] := x^2"),
+            Expr::set_delayed(
+                Expr::normal(Expr::symbol("f"), vec![Expr::named_pattern("x", Expr::blank())]),
+                Expr::power(Expr::symbol("x"), Expr::integer(2))
+            )
+        );
+    }
+
+    #[test]
+    fn assignment_is_right_associative_and_looser_than_rule() {
+        // a = b = 5 chains as Set[a, Set[b, 5]].
+        assert_eq!(p("a = b = 5"), Expr::set(Expr::symbol("a"), Expr::set(Expr::symbol("b"), Expr::integer(5))));
+    }
+
+    #[test]
+    fn map_operator_parses() {
+        assert_eq!(
+            p("f /@ {1, 2, 3}"),
+            Expr::call("Map", vec![Expr::symbol("f"), Expr::list(vec![Expr::integer(1), Expr::integer(2), Expr::integer(3)])])
+        );
+    }
+
+    #[test]
+    fn comments_are_invisible_to_the_parser() {
+        assert_eq!(p("(* a comment *) 1 + 2"), p("1 + 2"));
+        assert_eq!(p("1 (* nested (* comment *) here *) + 2"), p("1 + 2"));
     }
 }

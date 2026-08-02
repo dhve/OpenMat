@@ -73,6 +73,36 @@ impl Expr {
         Expr::call("Rule", vec![lhs, rhs])
     }
 
+    /// `Set[lhs, rhs]`, the assignment `lhs = rhs`.
+    pub fn set(lhs: Expr, rhs: Expr) -> Expr {
+        Expr::call("Set", vec![lhs, rhs])
+    }
+
+    /// `SetDelayed[lhs, rhs]`, the delayed assignment `lhs := rhs`.
+    pub fn set_delayed(lhs: Expr, rhs: Expr) -> Expr {
+        Expr::call("SetDelayed", vec![lhs, rhs])
+    }
+
+    pub fn less(lhs: Expr, rhs: Expr) -> Expr {
+        Expr::call("Less", vec![lhs, rhs])
+    }
+
+    pub fn greater(lhs: Expr, rhs: Expr) -> Expr {
+        Expr::call("Greater", vec![lhs, rhs])
+    }
+
+    pub fn less_equal(lhs: Expr, rhs: Expr) -> Expr {
+        Expr::call("LessEqual", vec![lhs, rhs])
+    }
+
+    pub fn greater_equal(lhs: Expr, rhs: Expr) -> Expr {
+        Expr::call("GreaterEqual", vec![lhs, rhs])
+    }
+
+    pub fn unequal(lhs: Expr, rhs: Expr) -> Expr {
+        Expr::call("Unequal", vec![lhs, rhs])
+    }
+
     /// `Blank[]`, the pattern `_`, matches anything.
     pub fn blank() -> Expr {
         Expr::call("Blank", vec![])
@@ -88,6 +118,28 @@ impl Expr {
     /// to whatever `sub` matches.
     pub fn named_pattern(name: impl Into<String>, sub: Expr) -> Expr {
         Expr::call("Pattern", vec![Expr::symbol(name), sub])
+    }
+
+    /// `BlankSequence[]`, the pattern `__`, matches one or more expressions.
+    /// Parse-only in this pass: [`crate::pattern`] does not yet match it.
+    pub fn blank_sequence() -> Expr {
+        Expr::call("BlankSequence", vec![])
+    }
+
+    /// `BlankSequence[head]`, the pattern `__head`.
+    pub fn blank_sequence_typed(head: impl Into<String>) -> Expr {
+        Expr::call("BlankSequence", vec![Expr::symbol(head)])
+    }
+
+    /// `BlankNullSequence[]`, the pattern `___`, matches zero or more
+    /// expressions. Parse-only in this pass, as with [`Expr::blank_sequence`].
+    pub fn blank_null_sequence() -> Expr {
+        Expr::call("BlankNullSequence", vec![])
+    }
+
+    /// `BlankNullSequence[head]`, the pattern `___head`.
+    pub fn blank_null_sequence_typed(head: impl Into<String>) -> Expr {
+        Expr::call("BlankNullSequence", vec![Expr::symbol(head)])
     }
 
     /// True for `Integer`/`Real` atoms.
@@ -149,13 +201,14 @@ impl Expr {
 
 // Precedence tiers used to decide when a subexpression needs parentheses.
 // Higher binds tighter. Kept private: this is a rendering concern only.
-const PREC_RULE: u8 = 1;
-const PREC_EQUAL: u8 = 2;
-const PREC_ADD: u8 = 3;
-const PREC_MUL: u8 = 4;
-const PREC_UNARY: u8 = 5;
-const PREC_POW: u8 = 6;
-const PREC_ATOM: u8 = 7;
+const PREC_ASSIGN: u8 = 1;
+const PREC_RULE: u8 = 2;
+const PREC_EQUAL: u8 = 3;
+const PREC_ADD: u8 = 4;
+const PREC_MUL: u8 = 5;
+const PREC_UNARY: u8 = 6;
+const PREC_POW: u8 = 7;
+const PREC_ATOM: u8 = 8;
 
 /// A `Power[base, exp]` where `exp` is a negative numeric literal displays as
 /// a reciprocal (`1/base` or `.../base^n`). Returns the positive magnitude of
@@ -216,8 +269,13 @@ fn own_precedence(e: &Expr) -> u8 {
         Expr::Integer(_) | Expr::Real(_) | Expr::Symbol(_) | Expr::Str(_) => PREC_ATOM,
         Expr::Normal { head, args } => match head.as_symbol() {
             Some("Plus") => PREC_ADD,
+            Some("Set") | Some("SetDelayed") if args.len() == 2 => PREC_ASSIGN,
             Some("Rule") if args.len() == 2 => PREC_RULE,
-            Some("Equal") if args.len() == 2 => PREC_EQUAL,
+            Some("Equal") | Some("Less") | Some("Greater") | Some("LessEqual") | Some("GreaterEqual") | Some("Unequal")
+                if args.len() == 2 =>
+            {
+                PREC_EQUAL
+            }
             Some("Times") => {
                 let (_num, den) = split_fraction(e);
                 if den.is_empty() {
@@ -259,6 +317,16 @@ fn is_negation(e: &Expr) -> bool {
         }
     }
     false
+}
+
+/// The type-restriction name for `Blank[head]` / `BlankSequence[head]` /
+/// `BlankNullSequence[head]` printing (`_Integer` etc.), or empty for the
+/// untyped form.
+fn blank_type_suffix(args: &[Expr]) -> String {
+    match args {
+        [Expr::Symbol(s)] => s.clone(),
+        _ => String::new(),
+    }
 }
 
 /// Detects the triple-nested `Derivative[n][f][t1, t2, ...]` shape built by
@@ -447,6 +515,48 @@ fn fmt_expr(e: &Expr, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                         write!(f, " == ")?;
                         return write_paren_if(f, &args[1], PREC_EQUAL + 1);
                     }
+                    "Less" if args.len() == 2 => {
+                        write_paren_if(f, &args[0], PREC_EQUAL + 1)?;
+                        write!(f, " < ")?;
+                        return write_paren_if(f, &args[1], PREC_EQUAL + 1);
+                    }
+                    "Greater" if args.len() == 2 => {
+                        write_paren_if(f, &args[0], PREC_EQUAL + 1)?;
+                        write!(f, " > ")?;
+                        return write_paren_if(f, &args[1], PREC_EQUAL + 1);
+                    }
+                    "LessEqual" if args.len() == 2 => {
+                        write_paren_if(f, &args[0], PREC_EQUAL + 1)?;
+                        write!(f, " <= ")?;
+                        return write_paren_if(f, &args[1], PREC_EQUAL + 1);
+                    }
+                    "GreaterEqual" if args.len() == 2 => {
+                        write_paren_if(f, &args[0], PREC_EQUAL + 1)?;
+                        write!(f, " >= ")?;
+                        return write_paren_if(f, &args[1], PREC_EQUAL + 1);
+                    }
+                    "Unequal" if args.len() == 2 => {
+                        write_paren_if(f, &args[0], PREC_EQUAL + 1)?;
+                        write!(f, " != ")?;
+                        return write_paren_if(f, &args[1], PREC_EQUAL + 1);
+                    }
+                    "Set" if args.len() == 2 => {
+                        write_paren_if(f, &args[0], PREC_ASSIGN + 1)?;
+                        write!(f, " = ")?;
+                        return write_paren_if(f, &args[1], PREC_ASSIGN + 1);
+                    }
+                    "SetDelayed" if args.len() == 2 => {
+                        write_paren_if(f, &args[0], PREC_ASSIGN + 1)?;
+                        write!(f, " := ")?;
+                        return write_paren_if(f, &args[1], PREC_ASSIGN + 1);
+                    }
+                    "Blank" => return write!(f, "_{}", blank_type_suffix(args)),
+                    "BlankSequence" => return write!(f, "__{}", blank_type_suffix(args)),
+                    "BlankNullSequence" => return write!(f, "___{}", blank_type_suffix(args)),
+                    "Pattern" if args.len() == 2 => {
+                        fmt_expr(&args[0], f)?;
+                        return fmt_expr(&args[1], f);
+                    }
                     _ => {}
                 }
             }
@@ -538,6 +648,29 @@ mod tests {
     fn function_call_display() {
         let e = Expr::call("Sin", vec![Expr::symbol("t")]);
         assert_eq!(e.to_string(), "Sin[t]");
+    }
+
+    #[test]
+    fn pattern_forms_display_compactly() {
+        assert_eq!(Expr::blank().to_string(), "_");
+        assert_eq!(Expr::blank_typed("Integer").to_string(), "_Integer");
+        assert_eq!(Expr::blank_sequence().to_string(), "__");
+        assert_eq!(Expr::blank_null_sequence().to_string(), "___");
+        assert_eq!(Expr::named_pattern("x", Expr::blank()).to_string(), "x_");
+        assert_eq!(Expr::named_pattern("x", Expr::blank_typed("Integer")).to_string(), "x_Integer");
+    }
+
+    #[test]
+    fn comparison_and_assignment_display() {
+        assert_eq!(Expr::less(Expr::symbol("a"), Expr::symbol("b")).to_string(), "a < b");
+        assert_eq!(Expr::greater_equal(Expr::symbol("a"), Expr::symbol("b")).to_string(), "a >= b");
+        assert_eq!(Expr::unequal(Expr::symbol("a"), Expr::symbol("b")).to_string(), "a != b");
+        assert_eq!(Expr::set(Expr::symbol("a"), Expr::integer(5)).to_string(), "a = 5");
+        assert_eq!(
+            Expr::set_delayed(Expr::call("f", vec![Expr::named_pattern("x", Expr::blank())]), Expr::power(Expr::symbol("x"), Expr::integer(2)))
+                .to_string(),
+            "f[x_] := x^2"
+        );
     }
 
     #[test]

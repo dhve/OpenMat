@@ -32,6 +32,20 @@ impl SymbolTable {
         for f in ["Sin", "Cos", "Tan", "Exp", "Log", "Sqrt", "Abs"] {
             table.set_attributes(f, &[Attribute::Listable]);
         }
+        // Set holds its left side so `f[x_] = ...` never evaluates the
+        // pattern being defined (which could otherwise substitute a stray
+        // ownvalue into a pattern variable's own name); SetDelayed holds
+        // both sides so the right side isn't evaluated until the rule
+        // actually fires. Clear holds its symbol arguments for the same
+        // reason: `Clear[f]` must not evaluate `f`. Table holds everything
+        // so its iterator variable name and bounds stay literal until each
+        // iteration substitutes a concrete value; If holds its branches so
+        // only the taken one is ever evaluated.
+        table.set_attributes("Set", &[Attribute::HoldFirst]);
+        table.set_attributes("SetDelayed", &[Attribute::HoldAll]);
+        table.set_attributes("Clear", &[Attribute::HoldAll]);
+        table.set_attributes("Table", &[Attribute::HoldAll]);
+        table.set_attributes("If", &[Attribute::HoldAll]);
         table
     }
 
@@ -79,6 +93,17 @@ mod tests {
         assert!(t.has_attribute("Hold", Attribute::HoldAll));
         assert!(!t.has_attribute("Hold", Attribute::Flat));
         assert!(!t.has_attribute("Unknown", Attribute::Flat));
+    }
+
+    #[test]
+    fn definition_and_control_form_attributes_preset() {
+        let t = SymbolTable::new();
+        assert!(t.has_attribute("Set", Attribute::HoldFirst));
+        assert!(!t.has_attribute("Set", Attribute::HoldAll));
+        assert!(t.has_attribute("SetDelayed", Attribute::HoldAll));
+        assert!(t.has_attribute("Clear", Attribute::HoldAll));
+        assert!(t.has_attribute("Table", Attribute::HoldAll));
+        assert!(t.has_attribute("If", Attribute::HoldAll));
     }
 
     #[test]

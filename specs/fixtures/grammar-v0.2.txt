@@ -1,0 +1,24 @@
+# Grammar conformance fixtures, v0.2 (specs/grammar.md section 8).
+# Format: input || canonical InputForm || LaTeX
+# New surface added in v0.2: patterns, comparisons, /@, Set/SetDelayed, Pi,
+# and comments (which the lexer strips before the parser ever sees them).
+# This file is additive to grammar-v0.1.txt, which stays in force unchanged.
+_ || _ || \_
+_Integer || _Integer || \_Integer
+__ || __ || \_\_
+___ || ___ || \_\_\_
+x_ || x_ || x\_
+x_Integer || x_Integer || x\_Integer
+f[x_Integer, y_] || f[x_Integer, y_] || f\left(x\_Integer, y\_\right)
+1 < 2 || 1 < 2 || 1 < 2
+a > b || a > b || a > b
+a <= b || a <= b || a \leq b
+a >= b || a >= b || a \geq b
+a != b || a != b || a \neq b
+Pi || Pi || \pi
+(* a comment *) 1 + 2 || 1 + 2 || 1 + 2
+(* nested (* comment *) still a comment *) x || x || x
+f /@ {1, 2, 3} || Map[f, {1, 2, 3}] || \operatorname{Map}\left(f, \left\{1, 2, 3\right\}\right)
+a = 5 || a = 5 || a = 5
+f[x_] := x^2 || f[x_] := x^2 || f\left(x\_\right) := x^{2}
+If[True, 1, 2] || If[True, 1, 2] || \operatorname{If}\left(True, 1, 2\right)

@@ -71,7 +71,12 @@ fn match_into(pattern: &Expr, expr: &Expr, bindings: &mut Bindings) -> bool {
     pattern == expr
 }
 
-fn substitute(template: &Expr, bindings: &Bindings) -> Expr {
+/// Rebuild `template` with every free occurrence of a bound symbol replaced
+/// by its binding. Exposed beyond this module (not just used by
+/// [`replace_all`]) because `eval.rs` reuses it for the same substitution
+/// job when applying a matched downvalue (`f[x_] := x^2`) and when
+/// instantiating a `Table` body per iteration.
+pub fn substitute(template: &Expr, bindings: &Bindings) -> Expr {
     match template {
         Expr::Symbol(name) => bindings.get(name).cloned().unwrap_or_else(|| template.clone()),
         Expr::Normal { head, args } => {
