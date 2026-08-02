@@ -61,7 +61,7 @@ fn is_known_symbol(name: &str) -> bool {
 
 /// Handle `expr` (already confirmed to have head `NDSolve`), returning either
 /// a ready [`NdsolveOutcome`], or a human readable error message.
-pub(crate) fn solve(expr: &Expr) -> Result<NdsolveOutcome, String> {
+pub(crate) fn solve(evaluator: &Evaluator, expr: &Expr) -> Result<NdsolveOutcome, String> {
     let (_head, args) = expr.as_normal().expect("caller checked head is NDSolve");
     if args.len() != 3 {
         return Err(format!("NDSolve expects 3 arguments (equations, function, {{t, t0, t1}}), got {}", args.len()));
@@ -125,13 +125,11 @@ pub(crate) fn solve(expr: &Expr) -> Result<NdsolveOutcome, String> {
     // initial condition (`x'[0] == 0` is common) would zero out the free
     // symbol along with it and hide the error, so a symbolic scan is the
     // only check that cannot be fooled by the specific numbers involved.
-    if let Some(stray) = find_free_symbol(&residual) {
+    if let Some(stray) = find_free_symbol_undefined(evaluator, &residual) {
         return Err(format!(
             "NDSolve: '{stray}' is not bound to a number; substitute a numeric value for '{stray}' before calling NDSolve"
         ));
     }
-
-    let evaluator = Evaluator::new();
 
     let y0 = if order == 2 {
         let x0 = ic0.ok_or_else(|| format!("NDSolve: second-order equation needs an initial condition {var}({t0}) == ..."))?;
@@ -152,7 +150,10 @@ pub(crate) fn solve(expr: &Expr) -> Result<NdsolveOutcome, String> {
     // the Expr tree on every step, which is where the time actually goes
     // over a long integration.
     let residual_for_rhs = residual;
-    let evaluator_for_rhs = evaluator;
+    // Owned snapshot: OdeProblem's RHS closure must be Send + 'static, so it
+    // cannot borrow the session evaluator, but a fork carries the session's
+    // definitions into the integration loop.
+    let evaluator_for_rhs = evaluator.fork();
     let t_span = (t0, t1);
 
     let problem = if order == 2 {
@@ -234,6 +235,19 @@ fn find_free_symbol(e: &Expr) -> Option<String> {
     match e {
         Expr::Symbol(s) if !is_known_symbol(s) => Some(s.clone()),
         Expr::Normal { head, args } => find_free_symbol(head).or_else(|| args.iter().find_map(find_free_symbol)),
+        _ => None,
+    }
+}
+
+/// Like [`find_free_symbol`], but session-aware: a symbol carrying a user
+/// definition (`g = 9.8`) is bound, not stray, since the evaluator resolves
+/// it during residual evaluation.
+fn find_free_symbol_undefined(evaluator: &Evaluator, e: &Expr) -> Option<String> {
+    match e {
+        Expr::Symbol(s) if !is_known_symbol(s) && !evaluator.has_definition(s) => Some(s.clone()),
+        Expr::Normal { head, args } => {
+            find_free_symbol_undefined(evaluator, head).or_else(|| args.iter().find_map(|a| find_free_symbol_undefined(evaluator, a)))
+        }
         _ => None,
     }
 }
@@ -353,7 +367,7 @@ mod tests {
     #[test]
     fn damped_pendulum_with_c_bound_produces_plot() {
         let e = ndsolve_expr("NDSolve[{x''[t] + 0.5 x'[t] + Sin[x[t]] == 0, x[0] == 2, x'[0] == 0}, x, {t, 0, 20}]");
-        let result = solve(&e).expect("should solve");
+        let result = solve(&Evaluator::new(), &e).expect("should solve");
         assert_eq!(result.curves.len(), 1);
         assert_eq!(result.curves[0].points.len(), 400);
         let first = result.curves[0].points[0];
@@ -377,7 +391,7 @@ mod tests {
     #[test]
     fn harmonic_oscillator_matches_cosine() {
         let e = ndsolve_expr("NDSolve[{x''[t] + x[t] == 0, x[0] == 1, x'[0] == 0}, x, {t, 0, 6.28}]");
-        let result = solve(&e).expect("should solve");
+        let result = solve(&Evaluator::new(), &e).expect("should solve");
         let (t_at_pi, x_at_pi) = result.curves[0]
             .points
             .iter()
@@ -391,7 +405,7 @@ mod tests {
     #[test]
     fn first_order_decay_matches_exp() {
         let e = ndsolve_expr("NDSolve[{x'[t] == -x[t], x[0] == 1}, x, {t, 0, 1}]");
-        let result = solve(&e).expect("should solve");
+        let result = solve(&Evaluator::new(), &e).expect("should solve");
         let last = *result.curves[0].points.last().unwrap();
         assert!((last.0 - 1.0).abs() < 1e-9);
         assert!((last.1 - std::f64::consts::E.recip()).abs() < 1e-3, "x(1) = {}", last.1);
@@ -400,7 +414,7 @@ mod tests {
     #[test]
     fn unbound_parameter_is_a_clear_error() {
         let e = ndsolve_expr("NDSolve[{x''[t] + c x'[t] + Sin[x[t]] == 0, x[0] == 2, x'[0] == 0}, x, {t, 0, 20}]");
-        let err = solve(&e).unwrap_err();
+        let err = solve(&Evaluator::new(), &e).unwrap_err();
         assert!(err.contains('c'), "error should mention the unbound symbol: {err}");
         assert!(err.to_lowercase().contains("substitute"), "error should tell the user to substitute a value: {err}");
     }

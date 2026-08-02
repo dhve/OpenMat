@@ -44,6 +44,7 @@ const MAX_ITERATIONS: usize = 4096;
 /// at definition time). Matched against a call's actual arguments by
 /// wrapping both the stored patterns and the actual arguments in a
 /// synthetic `f[...]` call and running the ordinary pattern matcher over it.
+#[derive(Clone)]
 struct DownValue {
     pattern_args: Vec<Expr>,
     rhs: Expr,
@@ -53,7 +54,7 @@ struct DownValue {
 /// matched in the order they were made, first match wins; unlike real
 /// Wolfram Language, rules are not reordered by pattern specificity (see the
 /// module doc in `pattern.rs` for the same scope cut on matching itself).
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct Definitions {
     own_values: HashMap<String, Expr>,
     down_values: HashMap<String, Vec<DownValue>>,
@@ -71,6 +72,23 @@ impl Evaluator {
 
     pub fn with_symtab(symtab: SymbolTable) -> Self {
         Evaluator { symtab, definitions: RefCell::new(Definitions::default()) }
+    }
+
+    /// Whether `name` carries a user definition (an OwnValue from `=` or a
+    /// DownValue from `:=`). Lets callers doing free-symbol analysis (e.g.
+    /// Plot/NDSolve's unbound-parameter checks) treat session-defined
+    /// symbols as bound rather than stray.
+    pub fn has_definition(&self, name: &str) -> bool {
+        let defs = self.definitions.borrow();
+        defs.own_values.contains_key(name) || defs.down_values.contains_key(name)
+    }
+
+    /// A snapshot copy: a new Evaluator carrying a clone of the current
+    /// definitions. Used where an owned evaluator must move into a
+    /// `Send + 'static` closure (NDSolve's ODE right-hand side) while still
+    /// seeing the session's definitions at the moment of the call.
+    pub fn fork(&self) -> Evaluator {
+        Evaluator { symtab: SymbolTable::new(), definitions: RefCell::new(self.definitions.borrow().clone()) }
     }
 
     /// Evaluate `expr` to a fixed point.

@@ -127,8 +127,19 @@ pub fn evaluate_with_bindings(input: &str, bindings: &HashMap<String, f64>, requ
     };
     let bound = apply_bindings(&expr, bindings);
 
+    // The session evaluator: one persistent Evaluator for the whole kernel
+    // lifetime, exactly like a Mathematica kernel session, so definitions
+    // (`a = 5`, `f[x_] := x^2`) made in one cell are visible in every later
+    // cell, including inside Plot sampling and NDSolve residuals. The lock
+    // is held across the whole evaluation, serializing concurrent requests,
+    // which is also the Mathematica model (one kernel, one evaluation at a
+    // time).
+    static SESSION: Mutex<Option<Evaluator>> = Mutex::new(None);
+    let mut session = SESSION.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let evaluator = session.get_or_insert_with(Evaluator::new);
+
     if bound.has_head("NDSolve") {
-        match ndsolve::solve(&bound) {
+        match ndsolve::solve(evaluator, &bound) {
             Ok(outcome) => KernelResult::ok(
                 request_id,
                 ndsolve_input_form(&bound),
@@ -140,7 +151,7 @@ pub fn evaluate_with_bindings(input: &str, bindings: &HashMap<String, f64>, requ
             Err(message) => KernelResult::error(request_id, ErrorKind::Solve, message, None),
         }
     } else if bound.has_head("Plot") {
-        match plot::plot(&bound) {
+        match plot::plot(evaluator, &bound) {
             Ok(outcome) => KernelResult::ok(
                 request_id,
                 plot_input_form(&bound),
@@ -152,7 +163,7 @@ pub fn evaluate_with_bindings(input: &str, bindings: &HashMap<String, f64>, requ
             Err(message) => KernelResult::error(request_id, ErrorKind::Eval, message, None),
         }
     } else if bound.has_head("ListPlot") {
-        match plot::list_plot(&bound) {
+        match plot::list_plot(evaluator, &bound) {
             Ok(outcome) => KernelResult::ok(
                 request_id,
                 plot_input_form(&bound),
@@ -164,7 +175,6 @@ pub fn evaluate_with_bindings(input: &str, bindings: &HashMap<String, f64>, requ
             Err(message) => KernelResult::error(request_id, ErrorKind::Eval, message, None),
         }
     } else {
-        let evaluator = Evaluator::new();
         let result = clean_tree(&evaluator.eval(&bound));
         KernelResult::ok(request_id, result.to_string(), vec![Display::Latex { latex: to_latex(&result) }])
     }
@@ -372,6 +382,31 @@ mod tests {
         assert_eq!(result.status, KernelStatus::Ok);
         let (curves, ..) = find_plot(&result.displays).expect("expected a plot display");
         assert_eq!(curves[0].points, vec![(1.0, 1.0), (2.0, 4.0), (3.0, 9.0)]);
+    }
+
+    // Session tests use symbol names no other test touches (the session is
+    // process-global and tests run in parallel), and Clear what they define.
+
+    #[test]
+    fn session_ownvalue_persists_across_evaluations() {
+        assert_eq!(evaluate("qsessa = 7", 1).input_form.as_deref(), Some("7"));
+        assert_eq!(evaluate("qsessa + 1", 2).input_form.as_deref(), Some("8"));
+        evaluate("Clear[qsessa]", 3);
+        assert_eq!(evaluate("qsessa", 4).input_form.as_deref(), Some("qsessa"));
+    }
+
+    #[test]
+    fn session_downvalue_resolves_inside_plot() {
+        let defined = evaluate("qsessf[y_] := y^2", 1);
+        assert_eq!(defined.status, KernelStatus::Ok, "definition failed: {:?}", defined.error);
+        let result = evaluate("Plot[qsessf[x], {x, 0, 1}]", 2);
+        assert_eq!(result.status, KernelStatus::Ok, "plot failed: {:?}", result.error);
+        let (curves, ..) = find_plot(&result.displays).expect("expected a plot display");
+        assert_eq!(curves.len(), 1);
+        // Sampled through the session evaluator: qsessf[0.5] must be 0.25.
+        let mid = curves[0].points.iter().min_by(|p, q| (p.0 - 0.5).abs().total_cmp(&(q.0 - 0.5).abs())).unwrap();
+        assert!((mid.1 - mid.0 * mid.0).abs() < 1e-6, "sample ({}, {}) not on y = x^2", mid.0, mid.1);
+        evaluate("Clear[qsessf]", 3);
     }
 
     #[test]

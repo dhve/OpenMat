@@ -85,10 +85,12 @@ fn is_known_symbol(name: &str, var: &str) -> bool {
 /// `ndsolve.rs` gives: a coefficient that happens to multiply a zero at the
 /// probed point would hide the free symbol. A symbolic scan up front, before
 /// any sampling, cannot be fooled by which numbers happen to get tried.
-fn find_free_symbol(e: &Expr, var: &str) -> Option<String> {
+fn find_free_symbol(evaluator: &Evaluator, e: &Expr, var: &str) -> Option<String> {
     match e {
-        Expr::Symbol(s) if !is_known_symbol(s, var) => Some(s.clone()),
-        Expr::Normal { head, args } => find_free_symbol(head, var).or_else(|| args.iter().find_map(|a| find_free_symbol(a, var))),
+        Expr::Symbol(s) if !is_known_symbol(s, var) && !evaluator.has_definition(s) => Some(s.clone()),
+        Expr::Normal { head, args } => {
+            find_free_symbol(evaluator, head, var).or_else(|| args.iter().find_map(|a| find_free_symbol(evaluator, a, var)))
+        }
         _ => None,
     }
 }
@@ -364,8 +366,10 @@ fn min_max_padded(values: &[f64]) -> (f64, f64) {
 }
 
 /// Handle `expr` (already confirmed to have head `Plot`), returning either a
-/// ready [`PlotOutcome`] or a human readable error message.
-pub(crate) fn plot(expr: &Expr) -> Result<PlotOutcome, String> {
+/// ready [`PlotOutcome`] or a human readable error message. The session
+/// `evaluator` is used for sampling, so user definitions (`f[x_] := x^2`,
+/// `a = 2`) resolve inside the plotted expression.
+pub(crate) fn plot(evaluator: &Evaluator, expr: &Expr) -> Result<PlotOutcome, String> {
     let (_head, args) = expr.as_normal().expect("caller checked head is Plot");
     if args.len() != 2 {
         return Err(format!("Plot expects 2 arguments (an expression or list of expressions, and {{x, a, b}}), got {}", args.len()));
@@ -378,14 +382,13 @@ pub(crate) fn plot(expr: &Expr) -> Result<PlotOutcome, String> {
     }
 
     for (target, _label) in &targets {
-        if let Some(stray) = find_free_symbol(target, &var) {
+        if let Some(stray) = find_free_symbol(evaluator, target, &var) {
             return Err(format!(
                 "Plot: '{stray}' is not bound to a number; substitute a numeric value for '{stray}' before calling Plot"
             ));
         }
     }
 
-    let evaluator = Evaluator::new();
     let mut curves: Vec<Curve> = Vec::new();
     let mut all_ys: Vec<f64> = Vec::new();
 
@@ -409,7 +412,7 @@ pub(crate) fn plot(expr: &Expr) -> Result<PlotOutcome, String> {
 /// Handle `expr` (already confirmed to have head `ListPlot`): either
 /// `ListPlot[{{x1,y1}, ...}]` or `ListPlot[{y1, y2, ...}]` (x defaults to
 /// `1..n`), returning a single unlabeled curve.
-pub(crate) fn list_plot(expr: &Expr) -> Result<PlotOutcome, String> {
+pub(crate) fn list_plot(evaluator: &Evaluator, expr: &Expr) -> Result<PlotOutcome, String> {
     let (_head, args) = expr.as_normal().expect("caller checked head is ListPlot");
     if args.len() != 1 {
         return Err(format!("ListPlot expects 1 argument (a list of data), got {}", args.len()));
@@ -420,7 +423,6 @@ pub(crate) fn list_plot(expr: &Expr) -> Result<PlotOutcome, String> {
         return Err("ListPlot: given an empty list".to_string());
     }
 
-    let evaluator = Evaluator::new();
     let is_pairs = items.iter().all(|it| list_items(it).is_some_and(|p| p.len() == 2));
 
     let points: Vec<(f64, f64)> = if is_pairs {
@@ -465,9 +467,13 @@ mod tests {
         parse(src).unwrap()
     }
 
+    fn ev() -> Evaluator {
+        Evaluator::new()
+    }
+
     #[test]
     fn sin_curve_point_sanity() {
-        let outcome = plot(&e("Plot[Sin[x], {x, -3.14159265, 3.14159265}]")).expect("should plot");
+        let outcome = plot(&ev(), &e("Plot[Sin[x], {x, -3.14159265, 3.14159265}]")).expect("should plot");
         assert_eq!(outcome.curves.len(), 1, "sin is continuous, expected one unbroken curve");
         let pts = &outcome.curves[0].points;
         assert!(pts.len() >= INITIAL_SAMPLES, "expected at least the initial sample count, got {}", pts.len());
@@ -493,7 +499,7 @@ mod tests {
 
     #[test]
     fn multi_curve_labels_from_input_forms() {
-        let outcome = plot(&e("Plot[{Sin[x], Cos[x]}, {x, 0, 1}]")).expect("should plot");
+        let outcome = plot(&ev(), &e("Plot[{Sin[x], Cos[x]}, {x, 0, 1}]")).expect("should plot");
         assert_eq!(outcome.curves.len(), 2, "Sin and Cos are both continuous on [0, 1]");
         assert_eq!(outcome.curves[0].label.as_deref(), Some("Sin[x]"));
         assert_eq!(outcome.curves[1].label.as_deref(), Some("Cos[x]"));
@@ -503,7 +509,7 @@ mod tests {
 
     #[test]
     fn tan_splits_into_branches_at_the_asymptotes() {
-        let outcome = plot(&e("Plot[Tan[x], {x, -4, 4}]")).expect("should plot");
+        let outcome = plot(&ev(), &e("Plot[Tan[x], {x, -4, 4}]")).expect("should plot");
         // Two asymptotes inside [-4, 4] (at -pi/2 and pi/2) split the curve
         // into three branches.
         assert!(outcome.curves.len() >= 3, "expected at least 3 branches, got {}", outcome.curves.len());
@@ -532,7 +538,7 @@ mod tests {
 
     #[test]
     fn list_plot_xy_pairs() {
-        let outcome = list_plot(&e("ListPlot[{{1, 2}, {2, 4}, {3, 9}}]")).expect("should plot");
+        let outcome = list_plot(&ev(), &e("ListPlot[{{1, 2}, {2, 4}, {3, 9}}]")).expect("should plot");
         assert_eq!(outcome.curves.len(), 1);
         assert_eq!(outcome.curves[0].points, vec![(1.0, 2.0), (2.0, 4.0), (3.0, 9.0)]);
         assert!(outcome.curves[0].label.is_none());
@@ -540,14 +546,14 @@ mod tests {
 
     #[test]
     fn list_plot_bare_values_default_to_index_x() {
-        let outcome = list_plot(&e("ListPlot[{10, 20, 30}]")).expect("should plot");
+        let outcome = list_plot(&ev(), &e("ListPlot[{10, 20, 30}]")).expect("should plot");
         assert_eq!(outcome.curves.len(), 1);
         assert_eq!(outcome.curves[0].points, vec![(1.0, 10.0), (2.0, 20.0), (3.0, 30.0)]);
     }
 
     #[test]
     fn plot_unbound_parameter_is_a_clear_error() {
-        let err = plot(&e("Plot[a*Sin[x], {x, 0, 1}]")).unwrap_err();
+        let err = plot(&ev(), &e("Plot[a*Sin[x], {x, 0, 1}]")).unwrap_err();
         assert!(err.contains('a'), "error should mention the unbound symbol: {err}");
         assert!(err.to_lowercase().contains("substitute"), "error should tell the user to substitute a value: {err}");
     }
