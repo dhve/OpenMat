@@ -8,11 +8,15 @@ import { TranslatorParseError } from "../mathlive/translator";
 import {
   blankNotebookCells,
   cellsFromDoc,
+  createInputCell,
+  createTextCell,
   insertInputCellAt,
   toNotebookDoc,
   withCellConvertedToInput,
   withCellStyle,
 } from "./notebookDoc";
+import { generateOpenMatCode, LlmGenerationError } from "../llm/generate";
+import { parseGeneratedNotebook, type GeneratedCellSpec } from "../llm/notebookSpec";
 import type { InputCell, NotebookCellData, TextCellKind } from "./types";
 import "./Notebook.css";
 
@@ -156,10 +160,74 @@ export function Notebook({ initialCells }: NotebookProps) {
     return n;
   };
 
+  /** Free-form evaluation: interpret the English request into cell specs,
+   * then either evaluate a single expression inline (showing the
+   * interpreted form under the input, like Mathematica) or, for a composed
+   * notebook, insert the generated cells below and evaluate them in order
+   * (order matters: definitions persist in the kernel session). */
+  const runFreeform = async (id: string, cell: InputCell) => {
+    const request = cell.latex.trim();
+    if (request === "") {
+      updateCell(id, { status: "idle", result: null });
+      return;
+    }
+    updateCell(id, { status: "evaluating" });
+
+    let specs: GeneratedCellSpec[];
+    try {
+      specs = parseGeneratedNotebook(await generateOpenMatCode(request));
+    } catch (err) {
+      const message = err instanceof LlmGenerationError ? err.message : "Could not interpret this request.";
+      updateCell(id, { status: "error", result: { latex: "", error: message } });
+      return;
+    }
+    if (specs.length === 0) {
+      updateCell(id, { status: "idle", result: null });
+      return;
+    }
+
+    const [first] = specs;
+    if (specs.length === 1 && first.kind === "input" && !first.manipulate) {
+      const evalNumber = nextEvalNumber();
+      updateCell(id, { interpretedForm: first.code, evalNumber });
+      const kernelResult = await clientForCell(id)(first.code, {});
+      if (kernelResult === null) return;
+      const result = kernelResultToView(kernelResult);
+      updateCell(id, { status: result.error ? "error" : "done", result });
+      return;
+    }
+
+    const built: NotebookCellData[] = specs.map((spec) =>
+      spec.kind === "input"
+        ? { ...createInputCell(spec.code, "linear"), manipulate: spec.manipulate }
+        : createTextCell(spec.kind, spec.text),
+    );
+    const index = cellsRef.current.findIndex((c) => c.id === id);
+    const next = [...cellsRef.current.slice(0, index + 1), ...built, ...cellsRef.current.slice(index + 1)];
+    cellsRef.current = next;
+    setCells(next);
+    updateCell(id, {
+      status: "idle",
+      result: null,
+      interpretedForm: `${built.length} cell${built.length === 1 ? "" : "s"}`,
+    });
+
+    // Sequential on purpose: earlier cells' definitions must land in the
+    // kernel session before later cells evaluate.
+    for (const generated of built) {
+      if (generated.kind === "input") await runEvaluate(generated.id, generated);
+    }
+  };
+
   const runEvaluate = async (id: string, overrideCell?: InputCell, options: { assignNumber?: boolean } = {}) => {
     const assignNumber = options.assignNumber ?? true;
     const cell = overrideCell ?? (cells.find((c) => c.id === id) as InputCell | undefined);
     if (!cell || cell.kind !== "input") return;
+
+    if (cell.sourceKind === "freeform") {
+      await runFreeform(id, cell);
+      return;
+    }
 
     // A Manipulate drag re-solves under the *same* In/Out number: only an
     // explicit evaluation mints a new one, matching Mathematica (dragging a
@@ -193,6 +261,19 @@ export function Notebook({ initialCells }: NotebookProps) {
     const { cells: next, id } = insertInputCellAt(cells, index, source);
     setCells(next);
     setSelectedId(id);
+    pendingFocusId.current = id;
+  };
+
+  // Typing "=" in an empty math cell enters free-form natural language
+  // mode; Backspace in an empty free-form cell drops back to math. Both
+  // Mathematica conventions.
+  const enterFreeform = (id: string) => {
+    updateCell(id, { sourceKind: "freeform", latex: "", interpretedForm: undefined, status: "idle", result: null });
+    pendingFocusId.current = id;
+  };
+
+  const exitFreeform = (id: string) => {
+    updateCell(id, { sourceKind: undefined, latex: "", interpretedForm: undefined, status: "idle", result: null });
     pendingFocusId.current = id;
   };
 
@@ -308,6 +389,8 @@ export function Notebook({ initialCells }: NotebookProps) {
             onNavigateUp={() => focusPrev(cell.id)}
             onNavigateDown={() => focusNext(cell.id)}
             onManipulateChange={isInputCell(cell) ? (v) => handleManipulateChange(cell.id, v) : undefined}
+            onEnterFreeform={isInputCell(cell) ? () => enterFreeform(cell.id) : undefined}
+            onExitFreeform={isInputCell(cell) ? () => exitFreeform(cell.id) : undefined}
           />
           <InsertBar onInsert={() => insertCellAt(index + 1)} alwaysVisible={index === cells.length - 1} />
         </Fragment>

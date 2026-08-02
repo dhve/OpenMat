@@ -99,9 +99,9 @@ function SettingsModal({ onClose }: SettingsModalProps) {
 
   return (
     <div className="settings-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="settings-modal" role="dialog" aria-modal="true" aria-label="LLM provider settings">
+      <div className="settings-modal" role="dialog" aria-modal="true" aria-label="Natural language settings">
         <div className="settings-header">
-          <h2>LLM Provider Settings</h2>
+          <h2>Natural Language</h2>
           <button type="button" className="settings-close" aria-label="Close settings" onClick={onClose}>
             x
           </button>

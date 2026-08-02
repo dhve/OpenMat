@@ -14,7 +14,7 @@
 
 const ANTHROPIC_MESSAGES_URL: &str = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION: &str = "2023-06-01";
-const ANTHROPIC_MAX_TOKENS: u32 = 1024;
+const ANTHROPIC_MAX_TOKENS: u32 = 4096;
 
 const OLLAMA_CHAT_URL: &str = "http://localhost:11434/api/chat";
 const OLLAMA_TAGS_URL: &str = "http://localhost:11434/api/tags";
@@ -72,6 +72,14 @@ struct OllamaChatRequest<'a> {
     model: &'a str,
     messages: Vec<OllamaMessage<'a>>,
     stream: bool,
+    options: OllamaOptions,
+}
+
+/// Ollama's default num_predict truncates long replies mid-JSON; a
+/// generated multi-cell notebook needs room to finish.
+#[derive(serde::Serialize)]
+struct OllamaOptions {
+    num_predict: u32,
 }
 
 #[derive(serde::Deserialize)]
@@ -174,7 +182,7 @@ async fn call_ollama(model: &str, system: &str, prompt: &str) -> Result<String, 
     }
     messages.push(OllamaMessage { role: "user", content: prompt });
 
-    let body = OllamaChatRequest { model, messages, stream: false };
+    let body = OllamaChatRequest { model, messages, stream: false, options: OllamaOptions { num_predict: 4096 } };
 
     let response = client
         .post(OLLAMA_CHAT_URL)

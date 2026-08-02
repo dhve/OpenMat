@@ -24,3 +24,14 @@
 .code-input-field::placeholder {
   color: var(--ink-faint);
 }
+
+/* Free-form natural language cells read as prose, not code, and focus in
+   the free-form orange rather than the evaluation blue. */
+.code-input-field-freeform {
+  font-family: var(--font-ui);
+  font-size: 15px;
+}
+
+.code-input-field-freeform:focus {
+  border-color: var(--accent-2);
+}

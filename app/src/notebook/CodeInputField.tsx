@@ -5,6 +5,9 @@ interface CodeInputFieldProps {
   value: string;
   autoFocus?: boolean;
   placeholder?: string;
+  /** "code" (default): monospace WL linear syntax. "freeform": the plain
+   * natural-language style used by =-prefixed free-form cells. */
+  variant?: "code" | "freeform";
   onChange: (value: string) => void;
   onFocus?: () => void;
   /** Shift+Enter: evaluate the cell. */
@@ -13,6 +16,9 @@ interface CodeInputFieldProps {
   onCommit?: () => void;
   onNavigateUp?: () => void;
   onNavigateDown?: () => void;
+  /** Backspace with the field already empty (free-form cells use this to
+   * drop back to ordinary math input). */
+  onEmptyBackspace?: () => void;
 }
 
 export interface CodeInputHandle {
@@ -32,7 +38,7 @@ export interface CodeInputHandle {
  * keeps, exactly the characters the model generated.
  */
 export const CodeInputField = forwardRef<CodeInputHandle, CodeInputFieldProps>(function CodeInputField(
-  { value, autoFocus, placeholder, onChange, onFocus, onEvaluate, onCommit, onNavigateUp, onNavigateDown },
+  { value, autoFocus, placeholder, variant, onChange, onFocus, onEvaluate, onCommit, onNavigateUp, onNavigateDown, onEmptyBackspace },
   ref,
 ) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -59,6 +65,11 @@ export const CodeInputField = forwardRef<CodeInputHandle, CodeInputFieldProps>(f
   }, [value]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Backspace" && e.currentTarget.value === "" && onEmptyBackspace) {
+      e.preventDefault();
+      onEmptyBackspace();
+      return;
+    }
     if (e.key === "Enter") {
       e.preventDefault();
       if (e.shiftKey) onEvaluate?.();
@@ -85,7 +96,7 @@ export const CodeInputField = forwardRef<CodeInputHandle, CodeInputFieldProps>(f
   return (
     <textarea
       ref={textareaRef}
-      className="code-input-field"
+      className={variant === "freeform" ? "code-input-field code-input-field-freeform" : "code-input-field"}
       value={value}
       placeholder={placeholder}
       rows={1}

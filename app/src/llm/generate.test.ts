@@ -9,6 +9,11 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 const mockedInvoke = vi.mocked(invoke);
 
+// These tests exercise the desktop transport (the mocked Tauri invoke), so
+// mark the environment as Tauri; without the flag generateOpenMatCode takes
+// the direct-fetch browser path instead.
+(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
+
 afterEach(() => {
   resetSettingsForTests();
   mockedInvoke.mockReset();

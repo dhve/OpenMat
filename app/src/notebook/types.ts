@@ -33,16 +33,19 @@ export interface InputCell {
    *   - "latex" (default, undefined counts as this): MathLive LaTeX,
    *     translated to WL linear syntax before evaluating.
    *   - "linear": already OpenMat's WL-shaped linear syntax (e.g.
-   *     `Sin[x]`, `NDSolve[...]`), used as-is. This is what
-   *     `window.__openmat_insert_cell` produces: the LLM workstream's Ask
-   *     AI feature (specs/m0-milestone.md M6) generates linear syntax, not
-   *     LaTeX, and running it through the LaTeX translator would fail on
-   *     every multi-letter function name and square bracket.
-   * MathLive still renders `latex` either way; "linear" text just renders
-   * as its literal characters rather than typeset math, which is exactly
-   * what an editable, review-before-you-run code preview needs.
+   *     `Sin[x]`, `NDSolve[...]`), used as-is: generated cells hold linear
+   *     syntax, and running it through the LaTeX translator would mangle
+   *     braces and brackets.
+   *   - "freeform": plain natural language (Mathematica's free-form input,
+   *     entered by typing = at the start of an empty cell). Evaluation
+   *     interprets it into cells/expressions first (see llm/ and
+   *     Notebook.tsx); `interpretedForm` records what it became.
    */
-  sourceKind?: "latex" | "linear";
+  sourceKind?: "latex" | "linear" | "freeform";
+  /** For a freeform cell: the linear-syntax expression (or a cell-count
+   * note) its natural language last interpreted into, shown under the
+   * input the way Mathematica shows its free-form interpretation. */
+  interpretedForm?: string;
   status: CellStatus;
   result: EvalResult | null;
   manipulate?: ManipulateConfig;

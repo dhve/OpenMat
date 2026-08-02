@@ -28,6 +28,11 @@ const PENDULUM_T1 = 20;
 export function buildInputForCell(cell: InputCell): string {
   const core = cell.sourceKind === "linear" ? cell.latex.trim() : translateLatexToWL(cell.latex);
   if (!cell.manipulate) return core;
+  // Linear-syntax cells with a slider (generated notebooks) already carry
+  // the complete expression: the slider's symbol is simply bound at
+  // evaluation time. The NDSolve wrapping below is only for the flagship
+  // demo's 2D equation cell, whose source is just the equation itself.
+  if (cell.sourceKind === "linear") return core;
   return `NDSolve[{${core}, x[0] == ${PENDULUM_X0}, x'[0] == ${PENDULUM_V0}}, x, {t, 0, ${PENDULUM_T1}}]`;
 }
 

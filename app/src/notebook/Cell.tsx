@@ -29,6 +29,11 @@ interface CellProps {
   onNavigateUp?: () => void;
   onNavigateDown?: () => void;
   onManipulateChange?: (value: number) => void;
+  /** "=" typed in an empty math cell: switch this cell to free-form
+   * natural language input (Mathematica's =-prefixed cells). */
+  onEnterFreeform?: () => void;
+  /** Backspace in an empty free-form cell: back to ordinary math input. */
+  onExitFreeform?: () => void;
 }
 
 export function Cell({
@@ -44,6 +49,8 @@ export function Cell({
   onNavigateUp,
   onNavigateDown,
   onManipulateChange,
+  onEnterFreeform,
+  onExitFreeform,
 }: CellProps) {
   if (cell.kind !== "input") {
     return (
@@ -75,7 +82,27 @@ export function Cell({
         <span className="cell-label cell-label-in" aria-hidden="true">
           {inLabel}
         </span>
-        {cell.sourceKind === "linear" ? (
+        {cell.sourceKind === "freeform" ? (
+          <div className="freeform-row">
+            <span className="freeform-marker" aria-hidden="true">
+              =
+            </span>
+            <CodeInputField
+              ref={fieldRef}
+              variant="freeform"
+              value={cell.latex}
+              onChange={(latex) => onLatexChange?.(latex)}
+              onEvaluate={onEvaluate}
+              onCommit={onCommit}
+              onFocus={onSelect}
+              onNavigateUp={onNavigateUp}
+              onNavigateDown={onNavigateDown}
+              onEmptyBackspace={onExitFreeform}
+              autoFocus={autoFocus}
+              placeholder="natural language input"
+            />
+          </div>
+        ) : cell.sourceKind === "linear" ? (
           <CodeInputField
             ref={fieldRef}
             value={cell.latex}
@@ -98,12 +125,21 @@ export function Cell({
             onFocus={onSelect}
             onNavigateUp={onNavigateUp}
             onNavigateDown={onNavigateDown}
+            onFreeform={onEnterFreeform}
             autoFocus={autoFocus}
             placeholder="Type an expression…"
           />
         )}
         <span className="cell-bracket cell-bracket-row" aria-hidden="true" />
       </div>
+
+      {cell.sourceKind === "freeform" && cell.interpretedForm && (
+        <div className="cell-row cell-row-interpreted">
+          <span className="cell-label" aria-hidden="true" />
+          <div className="freeform-interpreted">{cell.interpretedForm}</div>
+          <span className="cell-bracket cell-bracket-row" aria-hidden="true" />
+        </div>
+      )}
 
       {cell.manipulate && (
         <Slider

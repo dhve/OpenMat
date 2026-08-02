@@ -18,6 +18,10 @@ interface MathFieldProps {
   /** Down arrow pressed with the caret already at the bottom of the field:
    * move to the next cell. */
   onNavigateDown?: () => void;
+  /** "=" typed into an EMPTY field: switch the cell to free-form natural
+   * language input, exactly like Mathematica's =-prefixed cells. An "=" in
+   * a non-empty field stays ordinary math input. */
+  onFreeform?: () => void;
   placeholder?: string;
   autoFocus?: boolean;
 }
@@ -39,7 +43,7 @@ export interface MathFieldHandle {
  * complex custom elements.
  */
 export const MathField = forwardRef<MathFieldHandle, MathFieldProps>(function MathField(
-  { value, onChange, onEnter, onEvaluate, onFocus, onNavigateUp, onNavigateDown, placeholder, autoFocus },
+  { value, onChange, onEnter, onEvaluate, onFocus, onNavigateUp, onNavigateDown, onFreeform, placeholder, autoFocus },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -61,12 +65,14 @@ export const MathField = forwardRef<MathFieldHandle, MathFieldProps>(function Ma
   const onFocusRef = useRef(onFocus);
   const onNavigateUpRef = useRef(onNavigateUp);
   const onNavigateDownRef = useRef(onNavigateDown);
+  const onFreeformRef = useRef(onFreeform);
   onChangeRef.current = onChange;
   onEnterRef.current = onEnter;
   onEvaluateRef.current = onEvaluate;
   onFocusRef.current = onFocus;
   onNavigateUpRef.current = onNavigateUp;
   onNavigateDownRef.current = onNavigateDown;
+  onFreeformRef.current = onFreeform;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -84,13 +90,32 @@ export const MathField = forwardRef<MathFieldHandle, MathFieldProps>(function Ma
     mf.smartSuperscript = true;
     if (placeholder) mf.setAttribute("placeholder", placeholder);
 
-    const handleInput = () => onChangeRef.current(mf.value);
+    const handleInput = () => {
+      // "=" as the sole content of the field: the free-form trigger arrived
+      // as inserted text rather than a keydown (IME, paste, synthetic
+      // input). Same conversion as the keydown intercept below.
+      if (onFreeformRef.current && mf.value.trim() === "=") {
+        mf.value = "";
+        onFreeformRef.current();
+        return;
+      }
+      onChangeRef.current(mf.value);
+    };
     const handleFocusIn = () => onFocusRef.current?.();
 
     // Registered with capture so it runs before MathLive's own internal key
     // handling (which lives on an element inside its shadow DOM), so
     // preventDefault reliably wins for the keys we intercept.
     const handleKeydown = (e: KeyboardEvent) => {
+      // "=" as the first character of an empty cell: Mathematica's
+      // free-form input trigger.
+      if (e.key === "=" && onFreeformRef.current && mf.value.trim() === "") {
+        e.preventDefault();
+        e.stopPropagation();
+        onFreeformRef.current();
+        return;
+      }
+
       if (e.key === "Enter") {
         e.preventDefault();
         e.stopPropagation();
