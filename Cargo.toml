@@ -1,0 +1,13 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/openmat-core",
+    "crates/openmat-solve",
+    "crates/openmat-kernel",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/dhve/OpenMat"

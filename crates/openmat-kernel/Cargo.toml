@@ -1,0 +1,10 @@
+[package]
+name = "openmat-kernel"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+openmat-core = { path = "../openmat-core" }
+openmat-solve = { path = "../openmat-solve" }
