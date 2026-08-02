@@ -91,7 +91,14 @@ impl Evaluator {
             "Sin" | "Cos" | "Tan" | "Exp" | "Log" | "Sqrt" | "Abs" if args.len() == 1 => {
                 eval_numeric_builtin(name, &args[0])
             }
-            _ => expr.clone(),
+            _ => {
+                // Math builtins (calculus, algebra, solving) live in their own
+                // module so the core loop stays small; None means no rule fired.
+                match crate::mathfns::dispatch(name, args, self) {
+                    Some(result) => result,
+                    None => expr.clone(),
+                }
+            }
         }
     }
 }

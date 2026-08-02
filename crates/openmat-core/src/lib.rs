@@ -20,6 +20,7 @@
 //! `pattern.rs` for where it plugs in.
 
 pub mod canon;
+pub mod mathfns;
 pub mod eval;
 pub mod expr;
 pub mod latex;
