@@ -137,10 +137,21 @@ export function parseGeneratedNotebook(raw: string): GeneratedCellSpec[] {
     } catch {
       continue;
     }
-    if (typeof parsed !== "object" || parsed === null || !Array.isArray((parsed as Record<string, unknown>).cells)) {
-      continue;
+    if (typeof parsed !== "object" || parsed === null) continue;
+
+    // Some models double-encode: {"cells": "[{\"kind\": ...}]"} with the
+    // array serialized as a string. Unwrap it before validating.
+    let cellsValue = (parsed as Record<string, unknown>).cells;
+    if (typeof cellsValue === "string") {
+      try {
+        cellsValue = JSON.parse(cellsValue);
+      } catch {
+        continue;
+      }
     }
-    const cells = ((parsed as Record<string, unknown>).cells as unknown[])
+    if (!Array.isArray(cellsValue)) continue;
+
+    const cells = (cellsValue as unknown[])
       .slice(0, MAX_CELLS)
       .map(asCell)
       .filter((c): c is GeneratedCellSpec => c !== null);

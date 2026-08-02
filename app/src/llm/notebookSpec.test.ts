@@ -62,6 +62,11 @@ describe("parseGeneratedNotebook", () => {
     expect(parseGeneratedNotebook("  ")).toEqual([]);
   });
 
+  it("unwraps a double-encoded cells array", () => {
+    const raw = JSON.stringify({ cells: JSON.stringify([{ kind: "input", code: "1 + 1" }]) });
+    expect(parseGeneratedNotebook(raw)).toEqual([{ kind: "input", code: "1 + 1", manipulate: undefined }]);
+  });
+
   it("salvages valid cells from a structurally broken outer object", () => {
     // Shaped like a real small-model failure: doubled closing brace after
     // the first cell breaks the outer object, later entries invent kinds.

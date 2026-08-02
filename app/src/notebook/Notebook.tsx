@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { Cell, type CellFieldHandle } from "./Cell";
+import { FreeformBar } from "./FreeformBar";
 import { InsertBar } from "./InsertBar";
 import { bindingsForCell, buildInputForCell } from "./buildInput";
 import { evaluate, kernelResultToView } from "../engine";
@@ -264,6 +265,23 @@ export function Notebook({ initialCells }: NotebookProps) {
     pendingFocusId.current = id;
   };
 
+  /** The docked natural language box: record the request as a free-form
+   * cell at the end of the notebook (same as typing = in a cell), then run
+   * the interpreter on it. Reuses the whole free-form path, so a single
+   * expression evaluates inline in that cell and a composed notebook
+   * inserts its cells right after it. */
+  const submitFreeformRequest = async (request: string) => {
+    const cell: InputCell = { ...createInputCell(request, "freeform") };
+    const next = [...cellsRef.current, cell];
+    cellsRef.current = next;
+    setCells(next);
+    setSelectedId(cell.id);
+    // The request cell (and what it generates) lands at the bottom.
+    requestAnimationFrame(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }));
+    await runEvaluate(cell.id, cell);
+    requestAnimationFrame(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }));
+  };
+
   // Typing "=" in an empty math cell enters free-form natural language
   // mode; Backspace in an empty free-form cell drops back to math. Both
   // Mathematica conventions.
@@ -395,6 +413,8 @@ export function Notebook({ initialCells }: NotebookProps) {
           <InsertBar onInsert={() => insertCellAt(index + 1)} alwaysVisible={index === cells.length - 1} />
         </Fragment>
       ))}
+
+      <FreeformBar onSubmit={submitFreeformRequest} />
     </div>
   );
 }
