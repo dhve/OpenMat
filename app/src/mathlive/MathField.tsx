@@ -75,6 +75,10 @@ export const MathField = forwardRef<MathFieldHandle, MathFieldProps>(function Ma
     const mf = document.createElement("math-field") as MathfieldElement;
     mf.className = "openmat-mathfield";
     mf.value = value;
+    // Setting value can leave the whole expression selected, which reads as
+    // highlighted (or invisible under dark-mode selection colors). Collapse
+    // the selection to the end so a prefilled cell shows plain content.
+    mf.executeCommand("moveToMathfieldEnd");
     mf.mathVirtualKeyboardPolicy = "manual";
     mf.smartFence = true;
     mf.smartSuperscript = true;

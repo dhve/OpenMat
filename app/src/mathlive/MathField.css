@@ -4,6 +4,13 @@
 
 .openmat-mathfield {
   --hue: 208; /* aligns MathLive's caret/highlight with the app accent blue */
+  /* Pin explicit colors so a dark-mode browser cannot flip MathLive's
+     internals to white-on-white against the app's white theme. */
+  color-scheme: light;
+  --caret-color: #2563eb;
+  --selection-background-color: rgba(37, 99, 235, 0.16);
+  --selection-color: #111111;
+  --contains-highlight-background-color: rgba(37, 99, 235, 0.08);
   display: block;
   width: 100%;
   min-height: 40px;
