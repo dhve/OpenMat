@@ -8,3 +8,7 @@ repository.workspace = true
 [dependencies]
 openmat-core = { path = "../openmat-core" }
 openmat-solve = { path = "../openmat-solve" }
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+serde_json = "1"
