@@ -44,12 +44,18 @@ export function Notebook({ initialCells }: NotebookProps) {
   // Kept in sync with state on every render so the window-level integration
   // contract (get/set notebook) and the global Alt+1/4/7/9 style-shortcut
   // listener, both registered once on mount, never read stale state.
+  //
+  // evalCounterRef is deliberately NOT re-synced here: it is the single
+  // source of truth for In/Out numbering, advanced synchronously by
+  // nextEvalNumber and reset only by the explicit set-notebook/clear paths.
+  // Re-syncing it from possibly-stale state mid-way through a sequence of
+  // awaited evaluations rolled the counter backwards and minted duplicate
+  // In[n] numbers.
   const cellsRef = useRef(cells);
   const evalCounterRef = useRef(evalCounter);
   const selectedIdRef = useRef(selectedId);
   useEffect(() => {
     cellsRef.current = cells;
-    evalCounterRef.current = evalCounter;
     selectedIdRef.current = selectedId;
   });
 
@@ -409,6 +415,7 @@ export function Notebook({ initialCells }: NotebookProps) {
             onManipulateChange={isInputCell(cell) ? (v) => handleManipulateChange(cell.id, v) : undefined}
             onEnterFreeform={isInputCell(cell) ? () => enterFreeform(cell.id) : undefined}
             onExitFreeform={isInputCell(cell) ? () => exitFreeform(cell.id) : undefined}
+            onToggleCollapse={isInputCell(cell) ? () => updateCell(cell.id, { collapsed: !cell.collapsed }) : undefined}
           />
           <InsertBar onInsert={() => insertCellAt(index + 1)} alwaysVisible={index === cells.length - 1} />
         </Fragment>

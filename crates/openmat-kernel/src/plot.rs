@@ -73,7 +73,13 @@ pub(crate) struct PlotOutcome {
 /// deliberately small, matching `ndsolve.rs`'s own `BUILTIN_NAMES`: anything
 /// else (a stray coefficient like `a` in `a*Sin[x]`) is reported as an
 /// unbound parameter before any sampling happens.
-const BUILTIN_NAMES: &[&str] = &["Plus", "Times", "Power", "Sin", "Cos", "Tan", "Exp", "Log", "Sqrt", "Abs", "N", "List"];
+const BUILTIN_NAMES: &[&str] = &[
+    "Plus", "Times", "Power", "Sin", "Cos", "Tan", "Cot", "Sec", "Csc", "ArcSin", "ArcCos", "ArcTan", "Sinh", "Cosh", "Tanh", "Exp",
+    "Log", "Sqrt", "Abs", "N", "List", "Floor", "Ceiling", "Round", "Min", "Max", "Mod",
+    // Constants the evaluator resolves numerically under N[...]; they are
+    // bound by definition, not stray parameters.
+    "Pi", "E", "Degree", "Infinity",
+];
 
 fn is_known_symbol(name: &str, var: &str) -> bool {
     name == var || BUILTIN_NAMES.contains(&name)
@@ -406,7 +412,7 @@ pub(crate) fn plot(evaluator: &Evaluator, expr: &Expr) -> Result<PlotOutcome, St
             all_ys.extend(run.iter().map(|p| p.1));
         }
         for run in runs {
-            curves.push(Curve { points: run, label: Some(label.clone()) });
+            curves.push(Curve { points: run, label: Some(label.clone()), style: None });
         }
     }
 
@@ -462,9 +468,11 @@ pub(crate) fn list_plot(evaluator: &Evaluator, expr: &Expr) -> Result<PlotOutcom
     let ys: Vec<f64> = points.iter().map(|p| p.1).collect();
     let x_range = min_max_padded(&xs);
     let y_range = quantile_padded_range(&ys);
-    let latex = to_latex(&args[0]);
+    // Typeset the EVALUATED data (ListPlot[Table[...]] shows the resulting
+    // list, not an unevaluated Table call).
+    let latex = to_latex(&data);
 
-    Ok(PlotOutcome { latex, curves: vec![Curve { points, label: None }], x_range, y_range })
+    Ok(PlotOutcome { latex, curves: vec![Curve { points, label: None, style: Some("points".to_string()) }], x_range, y_range })
 }
 
 #[cfg(test)]

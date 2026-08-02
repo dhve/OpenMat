@@ -46,8 +46,12 @@ fn placeholder_t() -> Expr {
     Expr::symbol("__T")
 }
 
-const BUILTIN_NAMES: &[&str] =
-    &["Plus", "Times", "Power", "Sin", "Cos", "Tan", "Exp", "Log", "Sqrt", "Abs", "N", "List", "Equal", "Rule", "Derivative"];
+const BUILTIN_NAMES: &[&str] = &[
+    "Plus", "Times", "Power", "Sin", "Cos", "Tan", "Cot", "Sec", "Csc", "ArcSin", "ArcCos", "ArcTan", "Sinh", "Cosh", "Tanh", "Exp",
+    "Log", "Sqrt", "Abs", "N", "List", "Equal", "Rule", "Derivative", "Floor", "Ceiling", "Round", "Min", "Max", "Mod",
+    // Constants the evaluator resolves numerically under N[...].
+    "Pi", "E", "Degree", "Infinity",
+];
 
 fn is_builtin_name(name: &str) -> bool {
     BUILTIN_NAMES.contains(&name)
@@ -197,7 +201,7 @@ pub(crate) fn solve(evaluator: &Evaluator, expr: &Expr) -> Result<NdsolveOutcome
 
     let latex = to_latex(&args[0]);
 
-    Ok(NdsolveOutcome { latex, curves: vec![Curve { points, label: Some(format!("{var}(t)")) }], x_range: (t0, t1), y_range })
+    Ok(NdsolveOutcome { latex, curves: vec![Curve { points, label: Some(format!("{var}(t)")), style: None }], x_range: (t0, t1), y_range })
 }
 
 /// Bind the function value, its first derivative, and the independent

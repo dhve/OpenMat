@@ -54,3 +54,8 @@
   fill: var(--ink);
   font-size: 12px;
 }
+
+.plot-point {
+  stroke: var(--paper);
+  stroke-width: 1;
+}

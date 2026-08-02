@@ -15,18 +15,71 @@
   background: linear-gradient(to top, var(--paper) 55%, transparent);
 }
 
-.freeform-bar-inner {
+.freeform-bar-stack {
   pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 808px; /* the notebook column minus its padding */
+}
+
+.freeform-bar-inner {
   display: flex;
   align-items: center;
   gap: 9px;
-  width: 100%;
-  max-width: 808px; /* the notebook column minus its padding */
   padding: 7px 9px;
   background: var(--surface-raised);
   border: 1px solid var(--rule);
   border-radius: 7px;
   box-shadow: 0 3px 14px rgba(0, 0, 0, 0.09);
+}
+
+/* The symbol palette above the input: one row of single-glyph buttons. */
+.freeform-bar-symbols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 6px 8px;
+  background: var(--surface-raised);
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.09);
+}
+
+.freeform-bar-symbol {
+  min-width: 30px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.freeform-bar-symbol:hover {
+  border-color: var(--rule);
+  background: var(--accent-soft);
+}
+
+.freeform-bar-symbols-toggle {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.freeform-bar-symbols-toggle:hover,
+.freeform-bar-symbols-toggle-open {
+  border-color: var(--rule);
+  color: var(--ink);
+  background: var(--accent-soft);
 }
 
 .freeform-bar-inner:focus-within {

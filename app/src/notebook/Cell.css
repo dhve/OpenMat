@@ -103,6 +103,17 @@
   border-width: 2px;
 }
 
+/* Collapsed cell: the bracket doubles up, Mathematica's collapsed-group
+   cue, and stays accent-tinted so it reads as an active control. */
+.cell-collapsed > .cell-bracket-outer::before {
+  border-width: 2.5px;
+  border-color: var(--accent);
+}
+
+.cell-collapsed .cell-row-input {
+  opacity: 0.85;
+}
+
 /* Tight within an In/Out group, generous between groups. */
 .cell {
   margin: 7px 0;

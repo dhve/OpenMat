@@ -49,6 +49,10 @@ export interface InputCell {
   status: CellStatus;
   result: EvalResult | null;
   manipulate?: ManipulateConfig;
+  /** Collapsed via its right-edge bracket: only the input row shows, the
+   * output/slider stay hidden until expanded again (Mathematica's cell
+   * group collapse). */
+  collapsed?: boolean;
   /**
    * The shared In[n]/Out[n] number for this cell's last labeled evaluation
    * (the global, notebook-wide counter described in notebookDoc.ts).

@@ -11,6 +11,8 @@
 export interface Curve {
   points: [number, number][];
   label?: string;
+  /** "points" renders discrete markers (ListPlot); absent means a line. */
+  style?: string;
 }
 
 export interface PlotData {

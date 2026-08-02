@@ -2,11 +2,21 @@
   display: block;
 }
 
-/* Desktop app: MathLive's virtual-keyboard and menu toggles are mobile
-   chrome; typing and the header controls cover their jobs here. */
-.openmat-mathfield::part(virtual-keyboard-toggle),
+/* The virtual-keyboard toggle IS the math symbol keyboard: keep it, quiet
+   until the field is active. MathLive's context-menu toggle stays hidden. */
 .openmat-mathfield::part(menu-toggle) {
   display: none;
+}
+
+.openmat-mathfield::part(virtual-keyboard-toggle) {
+  color: var(--ink-faint);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.openmat-mathfield:hover::part(virtual-keyboard-toggle),
+.openmat-mathfield:focus-within::part(virtual-keyboard-toggle) {
+  opacity: 1;
 }
 
 .openmat-mathfield {

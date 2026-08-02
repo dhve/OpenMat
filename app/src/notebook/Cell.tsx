@@ -34,6 +34,8 @@ interface CellProps {
   onEnterFreeform?: () => void;
   /** Backspace in an empty free-form cell: back to ordinary math input. */
   onExitFreeform?: () => void;
+  /** Click on the outer right-edge bracket: collapse/expand the cell. */
+  onToggleCollapse?: () => void;
 }
 
 export function Cell({
@@ -51,6 +53,7 @@ export function Cell({
   onManipulateChange,
   onEnterFreeform,
   onExitFreeform,
+  onToggleCollapse,
 }: CellProps) {
   if (cell.kind !== "input") {
     return (
@@ -74,10 +77,16 @@ export function Cell({
 
   const inLabel = cell.evalNumber != null ? `In[${cell.evalNumber}]:=` : "";
   const outLabel = cell.status === "done" && cell.evalNumber != null ? `Out[${cell.evalNumber}]=` : "";
-  const showOutputRow = cell.status !== "idle";
+  // No output row for a silent result (Null from a definition cell,
+  // matching Mathematica) or while the cell is collapsed.
+  const silentResult = cell.status === "done" && !cell.result?.latex && !cell.result?.plot && !cell.result?.error;
+  const showOutputRow = cell.status !== "idle" && !silentResult && !cell.collapsed;
 
   return (
-    <div className={`cell cell-input${selected ? " cell-selected" : ""}`} onClick={onSelect}>
+    <div
+      className={`cell cell-input${selected ? " cell-selected" : ""}${cell.collapsed ? " cell-collapsed" : ""}`}
+      onClick={onSelect}
+    >
       <div className="cell-row cell-row-input">
         <span className="cell-label cell-label-in" aria-hidden="true">
           {inLabel}
@@ -133,7 +142,7 @@ export function Cell({
         <span className="cell-bracket cell-bracket-row" aria-hidden="true" />
       </div>
 
-      {cell.sourceKind === "freeform" && cell.interpretedForm && (
+      {cell.sourceKind === "freeform" && cell.interpretedForm && !cell.collapsed && (
         <div className="cell-row cell-row-interpreted">
           <span className="cell-label" aria-hidden="true" />
           <div className="freeform-interpreted">{cell.interpretedForm}</div>
@@ -141,7 +150,7 @@ export function Cell({
         </div>
       )}
 
-      {cell.manipulate && (
+      {cell.manipulate && !cell.collapsed && (
         <Slider
           name={cell.manipulate.name}
           label={cell.manipulate.label}
@@ -163,7 +172,16 @@ export function Cell({
         </div>
       )}
 
-      <span className="cell-bracket cell-bracket-outer" aria-hidden="true" />
+      <span
+        className="cell-bracket cell-bracket-outer"
+        role="button"
+        aria-label={cell.collapsed ? "Expand cell" : "Collapse cell"}
+        title={cell.collapsed ? "Expand" : "Collapse"}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleCollapse?.();
+        }}
+      />
     </div>
   );
 }

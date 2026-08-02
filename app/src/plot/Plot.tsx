@@ -36,7 +36,8 @@ export function Plot({ curves, xRange, yRange, xLabel = "t", yLabel = "x", width
   const paths = useMemo(
     () =>
       curves.map((curve) => ({
-        d: smoothPathD(curve.points.map(([t, v]) => ({ x: scaleX(t), y: scaleY(v) }))),
+        d: curve.style === "points" ? "" : smoothPathD(curve.points.map(([t, v]) => ({ x: scaleX(t), y: scaleY(v) }))),
+        markers: curve.style === "points" ? curve.points.map(([t, v]) => ({ x: scaleX(t), y: scaleY(v) })) : null,
         label: curve.label,
       })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,10 +120,18 @@ export function Plot({ curves, xRange, yRange, xLabel = "t", yLabel = "x", width
         {yLabel}
       </text>
 
-      {/* Curves */}
-      {paths.map((p, i) => (
-        <path key={i} d={p.d} className="plot-curve" style={{ stroke: CURVE_COLORS[i % CURVE_COLORS.length] }} />
-      ))}
+      {/* Curves: lines by default, discrete markers for ListPlot data */}
+      {paths.map((p, i) =>
+        p.markers ? (
+          <g key={i}>
+            {p.markers.map((m, j) => (
+              <circle key={j} cx={m.x} cy={m.y} r={3.5} className="plot-point" style={{ fill: CURVE_COLORS[i % CURVE_COLORS.length] }} />
+            ))}
+          </g>
+        ) : (
+          <path key={i} d={p.d} className="plot-curve" style={{ stroke: CURVE_COLORS[i % CURVE_COLORS.length] }} />
+        ),
+      )}
 
       {/* Legend */}
       {showLegend && (

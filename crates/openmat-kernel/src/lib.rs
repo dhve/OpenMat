@@ -55,6 +55,9 @@ pub struct Curve {
     pub points: Vec<(f64, f64)>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
+    /// "points" renders discrete markers (ListPlot); absent means a line.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub style: Option<String>,
 }
 
 /// A warning or note that may accompany an `ok` result.
@@ -176,7 +179,14 @@ pub fn evaluate_with_bindings(input: &str, bindings: &HashMap<String, f64>, requ
         }
     } else {
         let result = clean_tree(&evaluator.eval(&bound));
-        KernelResult::ok(request_id, result.to_string(), vec![Display::Latex { latex: to_latex(&result) }])
+        // Null prints nothing, exactly as in Mathematica: a definition cell
+        // (f[x_] := ...) evaluates silently rather than showing "Null".
+        let displays = if result.as_symbol() == Some("Null") {
+            Vec::new()
+        } else {
+            vec![Display::Latex { latex: to_latex(&result) }]
+        };
+        KernelResult::ok(request_id, result.to_string(), displays)
     }
 }
 
@@ -254,7 +264,12 @@ fn clean_number(x: f64) -> f64 {
     if !scaled.is_finite() {
         return x;
     }
-    scaled.round() / 1e12
+    let cleaned = scaled.round() / 1e12;
+    // A quadrature result that lands on negative zero should read as 0.
+    if cleaned == 0.0 {
+        return 0.0;
+    }
+    cleaned
 }
 
 #[cfg(test)]
@@ -440,7 +455,7 @@ mod tests {
             vec![
                 Display::Latex { latex: "x^{2}".to_string() },
                 Display::Plot {
-                    curves: vec![Curve { points: vec![(0.0, 1.0), (1.0, 2.0)], label: Some("x(t)".to_string()) }],
+                    curves: vec![Curve { points: vec![(0.0, 1.0), (1.0, 2.0)], label: Some("x(t)".to_string()), style: None }],
                     x_range: (0.0, 1.0),
                     y_range: (1.0, 2.0),
                 },
