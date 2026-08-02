@@ -1,0 +1,48 @@
+.cell {
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-cell);
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+
+.cell-title {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  margin-bottom: 26px;
+  padding: 4px 4px 0;
+}
+
+.cell-title h1 {
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.cell-input-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 6px 8px 6px 4px;
+}
+
+.cell-prompt {
+  flex-shrink: 0;
+  width: 30px;
+  padding-top: 12px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  user-select: none;
+}
+
+.cell-input-row .mathfield-host {
+  flex: 1;
+  min-width: 0;
+}

@@ -1,0 +1,72 @@
+/* OpenMat theme: calm, textbook-like, restrained color.
+   One warm off-white paper tone, ink-colored type and axes, a small
+   deliberate accent palette used only where it earns its keep (curves,
+   focus states, the evaluate affordance). */
+
+:root {
+  --paper: #f2ede0;
+  --surface: #fffdf8;
+  --surface-raised: #ffffff;
+
+  --ink: #29261e;
+  --ink-soft: #6c6656;
+  --ink-faint: #9a927c;
+
+  --rule: #ddd2b8;
+  --rule-soft: #e9e0cc;
+  --grid: #e7dfc9;
+
+  --accent: #2f5f8f;
+  --accent-ink: #ffffff;
+  --accent-soft: #e4ecf3;
+  --accent-2: #9c3f3a;
+  --accent-3: #5c7a4f;
+
+  --error-bg: #fbecea;
+  --error-border: #dba39c;
+  --error-ink: #8a3226;
+
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: "SF Mono", Menlo, Consolas, monospace;
+
+  --radius: 6px;
+  --shadow-cell: 0 1px 2px rgba(41, 38, 30, 0.06), 0 1px 0 rgba(41, 38, 30, 0.03);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+button {
+  font-family: inherit;
+}
+
+/* KaTeX renders with its own font; nudge its size to sit calmly alongside
+   the UI type rather than towering over it. */
+.katex {
+  font-size: 1.08em;
+}
