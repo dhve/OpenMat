@@ -5,6 +5,7 @@ Feature and use-case specs for OpenMat, a fully open-source variant of Wolfram M
 1. [Core language and symbolic engine](01-core-language.md): expression model, evaluation loop, pattern matching and rewriting, CAS (Simplify, Integrate, Solve), core data structures, exact numerics.
 2. [Numerics, data, and visualization](02-numerics-data-viz.md): NDSolve, NIntegrate, optimization, the Plot and Graphics families, Import/Export, tabular data, stats and ML.
 3. [Notebook front-end and ecosystem](03-notebook-ecosystem.md): notebook document model, Manipulate/Dynamic reactivity, kernel architecture, documentation system, packages, knowledge base, competitive landscape.
+4. [Feature interview](feature-interview.md): recorded team interview settling wedge user, compatibility stance, kernel language, shell, solver sourcing, rendering scope, license, and execution plan.
 
 ## Cross-cutting takeaways
 
