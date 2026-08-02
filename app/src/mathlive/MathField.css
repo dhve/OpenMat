@@ -2,6 +2,13 @@
   display: block;
 }
 
+/* Desktop app: MathLive's virtual-keyboard and menu toggles are mobile
+   chrome; typing and the header controls cover their jobs here. */
+.openmat-mathfield::part(virtual-keyboard-toggle),
+.openmat-mathfield::part(menu-toggle) {
+  display: none;
+}
+
 .openmat-mathfield {
   --hue: 208; /* aligns MathLive's caret/highlight with the app accent blue */
   /* Pin explicit colors so a dark-mode browser cannot flip MathLive's

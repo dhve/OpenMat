@@ -71,5 +71,5 @@ button {
 /* KaTeX renders with its own font; nudge its size to sit calmly alongside
    the UI type rather than towering over it. */
 .katex {
-  font-size: 1.08em;
+  font-size: 1.16em;
 }

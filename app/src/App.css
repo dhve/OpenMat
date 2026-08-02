@@ -47,14 +47,21 @@
   background: var(--accent-soft);
 }
 
+.app-header-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Ask AI: an accent-outlined ghost, not a filled primary. On an Operate
+   surface the math is the loudest thing on screen, not a header button. */
 .app-header-button-accent {
-  background: var(--accent);
+  background: transparent;
   border-color: var(--accent);
-  color: var(--accent-ink);
+  color: var(--accent);
 }
 
 .app-header-button-accent:hover {
-  background: var(--accent);
-  color: var(--accent-ink);
-  opacity: 0.9;
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
 }
