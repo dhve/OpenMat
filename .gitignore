@@ -4,3 +4,6 @@ dist/
 .DS_Store
 *.log
 app/src-tauri/target
+
+# Local Netlify folder
+.netlify
