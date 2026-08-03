@@ -375,6 +375,30 @@
   }
   .codeblock .c { color: var(--ink-faint); }
 
+  /* ---- Origins ---- */
+  .origins { padding: 40px 0 36px; }
+  .origins-head {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: 27px;
+    margin-bottom: 6px;
+  }
+  .origins-sub { color: var(--ink-soft); max-width: 62ch; margin-bottom: 22px; }
+  .origins figure { margin: 0; max-width: 860px; }
+  .origins img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+  }
+  .origins figcaption {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .origins figcaption .out-label { font-family: var(--font-mono); font-size: 12px; color: var(--accent); opacity: 0.85; margin-right: 10px; }
+
   /* ---- Footer ---- */
   .footer {
     display: flex;
@@ -551,6 +575,15 @@ finish review, the verdict, and DESIGN.md.
     </div>
   </section>
 
+  <section class="origins" style="border-bottom: 1px solid var(--rule);">
+    <h2 class="origins-head">Established at Sundai Hack #134</h2>
+    <p class="origins-sub">OpenMat was established at Sundai Hack #134 on August 2nd, 2026: the kernel, the notebook, the v0.01 release, and this site, shipped and presented the same day.</p>
+    <figure>
+      <img src="/sundai-hack-134.jpg" width="1280" height="720" loading="lazy" alt="The OpenMat team presenting on stage at Sundai Hack #134, with the OpenMat project on the lecture hall projector and the Sundai banner beside them.">
+      <figcaption><span class="out-label">Out[3]=</span>Sundai Hack #134, August 2nd, 2026.</figcaption>
+    </figure>
+  </section>
+
   <section class="install">
     <h2 class="install-head">Install</h2>
     <div class="install-grid">
@@ -577,7 +610,7 @@ npm run dev         <span class="c"># browser, same kernel</span></pre>
 </main>
 
 <footer class="footer">
-  <p><span class="out-label">Out[3]=</span>Dual-licensed under MIT or Apache-2.0. The plot above is recomputed by this page; in the app, the same expression evaluates through the Rust kernel.</p>
+  <p><span class="out-label">Out[4]=</span>Dual-licensed under MIT or Apache-2.0. The plot above is recomputed by this page; in the app, the same expression evaluates through the Rust kernel.</p>
   <nav class="footer-links" aria-label="Footer links">
     <a href="https://github.com/dhve/OpenMat">GitHub</a>
     <a href="https://github.com/dhve/OpenMat/releases/tag/v0.01">v0.01 release</a>
