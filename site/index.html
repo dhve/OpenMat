@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenMat: Mathematica, rebuilt in Rust, fluent in English</title>
+<meta name="description" content="OpenMat is an open-source Mathematica-style notebook: a Rust symbolic kernel, live Manipulate sliders, and natural language input that writes whole notebooks. Desktop via Tauri, browser via WebAssembly.">
+<style>
+  :root {
+    --paper: #ffffff;
+    --ink: #1a1a1a;
+    --ink-soft: #545454;
+    --ink-faint: #9a9a9a;
+    --rule: #c9c9c9;
+    --rule-soft: #e6e6e6;
+    --accent: #3b5fa4;
+    --accent-ink: #ffffff;
+    --accent-soft: #eaf0fa;
+    --freeform: #c1652c;
+    --font-serif: "Times New Roman", Times, Georgia, serif;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-mono: "Courier New", Courier, Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* ---- App chrome: the product's own header grammar ---- */
+  .chrome {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 22px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .wordmark {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: 19px;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+  }
+  .chrome-actions { display: flex; align-items: center; gap: 8px; }
+  .chrome-tag {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-right: 6px;
+  }
+  .chrome-button {
+    display: inline-block;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    padding: 5px 13px;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .chrome-button:hover { background: var(--accent-soft); border-color: var(--accent); text-decoration: none; }
+  .chrome-button-primary {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  .chrome-button-primary:hover { background: #33538f; color: var(--accent-ink); }
+
+  .sheet { max-width: 1060px; margin: 0 auto; padding: 0 26px 40px; }
+
+  /* ---- Cell grammar shared across the page ---- */
+  .cell { position: relative; padding-right: 20px; }
+  .cell-bracket::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    right: 0;
+    width: 7px;
+    border-top: 1.5px solid var(--rule);
+    border-right: 1.5px solid var(--rule);
+    border-bottom: 1.5px solid var(--rule);
+    border-radius: 0 3px 3px 0;
+  }
+  .cell-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent);
+    opacity: 0.85;
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  /* ---- Masthead: identity beside the sentence that writes notebooks ---- */
+  .masthead {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 46px;
+    padding: 54px 0 40px;
+    border-bottom: 1px solid var(--rule);
+  }
+  /* Grid items default to min-width auto; nowrap code lines inside would
+     otherwise widen their column past the viewport. */
+  .masthead > *, .live-cell > *, .install-grid > *, .refcard-cols > * { min-width: 0; }
+  .masthead-title {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: clamp(52px, 7.5vw, 84px);
+    line-height: 0.98;
+    letter-spacing: -0.015em;
+  }
+  .masthead-sub {
+    font-family: var(--font-serif);
+    font-size: clamp(20px, 2.4vw, 26px);
+    line-height: 1.3;
+    margin-top: 14px;
+    max-width: 30ch;
+  }
+  .masthead-facts {
+    margin-top: 20px;
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    max-width: 52ch;
+  }
+  .masthead-facts p + p { margin-top: 7px; }
+  .masthead-cta { margin-top: 26px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .cta-primary {
+    display: inline-block;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 11px 22px;
+    border-radius: 3px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: 1px solid var(--accent);
+  }
+  .cta-primary:hover { background: #33538f; text-decoration: none; }
+  .cta-secondary {
+    display: inline-block;
+    font-size: 15px;
+    padding: 11px 18px;
+    border-radius: 3px;
+    border: 1px solid var(--rule);
+    color: var(--ink);
+  }
+  .cta-secondary:hover { border-color: var(--accent); background: var(--accent-soft); text-decoration: none; }
+  .cta-note {
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+
+  /* The free-form demo: one sentence in, a notebook out */
+  .sentence-demo { align-self: start; padding-top: 8px; }
+  .freeform-row { display: flex; gap: 9px; align-items: flex-start; }
+  .freeform-marker {
+    flex-shrink: 0;
+    width: 21px;
+    height: 21px;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    background: var(--freeform);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .freeform-text {
+    font-size: 16.5px;
+    line-height: 1.45;
+    color: var(--ink);
+  }
+  .freeform-caret {
+    display: inline-block;
+    width: 1.5px;
+    height: 1.05em;
+    background: var(--freeform);
+    vertical-align: text-bottom;
+    margin-left: 1px;
+    animation: caret 1.1s steps(1) infinite;
+  }
+  @keyframes caret { 50% { opacity: 0; } }
+  .freeform-interp {
+    margin: 10px 0 0 30px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+  .freeform-interp b { color: var(--freeform); font-weight: 400; }
+
+  .generated {
+    margin: 18px 0 0 30px;
+    border-left: 1px solid var(--rule-soft);
+    padding-left: 18px;
+  }
+  .generated > * { opacity: 0; transform: translateY(6px); }
+  .generated.play > * { animation: land 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  .generated.play > *:nth-child(1) { animation-delay: 0.15s; }
+  .generated.play > *:nth-child(2) { animation-delay: 0.4s; }
+  .generated.play > *:nth-child(3) { animation-delay: 0.65s; }
+  .generated.play > *:nth-child(4) { animation-delay: 0.9s; }
+  .generated.play > *:nth-child(5) { animation-delay: 1.15s; }
+  @keyframes land { to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .generated > * { opacity: 1; transform: none; animation: none !important; }
+    .freeform-caret { animation: none; }
+  }
+  .gen-title { font-family: var(--font-serif); font-weight: 700; font-size: 21px; }
+  .gen-section { font-family: var(--font-serif); font-weight: 700; font-size: 15.5px; color: var(--accent); margin-top: 12px; }
+  .gen-text { font-size: 13.5px; color: var(--ink-soft); margin-top: 6px; max-width: 44ch; }
+  .gen-code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    margin-top: 10px;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .gen-code .lbl { color: var(--accent); opacity: 0.85; margin-right: 8px; }
+  .gen-slider {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .gen-slider .track { flex: 1; max-width: 150px; height: 2px; background: var(--rule); position: relative; }
+  .gen-slider .track::after {
+    content: "";
+    position: absolute;
+    left: 34%;
+    top: -4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .sentence-note {
+    margin: 22px 0 0 30px;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    max-width: 46ch;
+  }
+
+  /* ---- The live cell: drag the slider, the kernel math morphs ---- */
+  .live { padding: 40px 0 36px; border-bottom: 1px solid var(--rule); }
+  .live-head {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: 27px;
+    margin-bottom: 6px;
+  }
+  .live-sub { color: var(--ink-soft); max-width: 62ch; margin-bottom: 24px; }
+  .live-cell { display: grid; grid-template-columns: 76px 1fr; row-gap: 4px; }
+  .live-in {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    padding-top: 2px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .live-slider {
+    grid-column: 2;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 14px 0 6px;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 15px;
+  }
+  .live-slider input[type="range"] {
+    flex: 1;
+    max-width: 420px;
+    accent-color: var(--accent);
+  }
+  .live-readout {
+    font-family: var(--font-mono);
+    font-style: normal;
+    font-size: 13px;
+    color: var(--ink-soft);
+    min-width: 74px;
+  }
+  .live-plot { grid-column: 2; max-width: 720px; }
+  .live-plot svg { width: 100%; height: auto; display: block; }
+  .plot-frame { fill: none; stroke: var(--ink); stroke-opacity: 0.55; }
+  .plot-grid { stroke: var(--rule-soft); }
+  .plot-tick-label { fill: var(--ink-soft); font-family: var(--font-ui); font-size: 11px; }
+  .plot-curve { fill: none; stroke: var(--accent); stroke-width: 2.25; stroke-linecap: round; }
+  .plot-envelope { fill: none; stroke: var(--freeform); stroke-width: 1; stroke-dasharray: 4 4; opacity: 0.7; }
+
+  /* ---- Reference card ---- */
+  .refcard { padding: 40px 0 8px; border-bottom: 1px solid var(--rule); }
+  .refcard-head {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: 27px;
+    margin-bottom: 6px;
+  }
+  .refcard-sub { color: var(--ink-soft); margin-bottom: 26px; max-width: 62ch; }
+  .refcard-cols {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+  }
+  .refcol { padding: 0 22px 28px 0; }
+  .refcol + .refcol { border-left: 1px solid var(--rule-soft); padding-left: 22px; }
+  .refcol h3 {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+  .refcol dl { font-size: 13px; }
+  .refcol dt {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--ink);
+    margin-top: 12px;
+    word-break: break-word;
+  }
+  .refcol dt:first-child { margin-top: 0; }
+  .refcol dd { color: var(--ink-soft); margin-top: 2px; }
+  .refcol .ff { color: var(--freeform); font-weight: 700; font-family: var(--font-mono); }
+
+  /* ---- Install ---- */
+  .install { padding: 40px 0 36px; border-bottom: 1px solid var(--rule); }
+  .install-head { font-family: var(--font-serif); font-weight: 700; font-size: 27px; margin-bottom: 22px; }
+  .install-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 46px; }
+  .install-col h3 { font-family: var(--font-serif); font-size: 17px; font-weight: 700; margin-bottom: 12px; }
+  .install-col ol { padding-left: 20px; color: var(--ink-soft); font-size: 14.5px; }
+  .install-col li { margin-bottom: 8px; }
+  .install-col li a { font-weight: 600; }
+  .install-note { margin-top: 12px; font-size: 13px; color: var(--ink-faint); max-width: 46ch; }
+  .codeblock {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    background: #fafafa;
+    border: 1px solid var(--rule-soft);
+    border-radius: 3px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    color: var(--ink);
+  }
+  .codeblock .c { color: var(--ink-faint); }
+
+  /* ---- Footer ---- */
+  .footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 26px 0 8px;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .footer .out-label { font-family: var(--font-mono); font-size: 12px; color: var(--accent); opacity: 0.85; margin-right: 10px; }
+  .footer-links { display: flex; gap: 18px; }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 900px) {
+    .masthead { grid-template-columns: 1fr; gap: 40px; padding-top: 40px; }
+    .refcard-cols { grid-template-columns: 1fr 1fr; }
+    .refcol:nth-child(odd) { border-left: none; padding-left: 0; }
+    .refcol:nth-child(even) { border-left: 1px solid var(--rule-soft); padding-left: 22px; }
+    .refcol { border-top: 1px solid var(--rule-soft); padding-top: 20px; }
+    .refcol:nth-child(-n+2) { border-top: none; padding-top: 0; }
+    .install-grid { grid-template-columns: 1fr; gap: 30px; }
+  }
+  @media (max-width: 560px) {
+    .refcard-cols { grid-template-columns: 1fr; }
+    .refcol, .refcol:nth-child(even) { border-left: none; padding-left: 0; }
+    .refcol { border-top: 1px solid var(--rule-soft); padding-top: 20px; }
+    .refcol:first-child { border-top: none; padding-top: 0; }
+    .live-cell { grid-template-columns: 1fr; }
+    .live-plot, .live-slider { grid-column: 1; }
+    .chrome { padding: 9px 14px; }
+    .chrome-tag { display: none; }
+    .sheet { padding: 0 16px 32px; }
+  }
+</style>
+</head>
+<body>
+<!--
+THESIS: The download page for an open Mathematica is itself a Mathematica
+notebook and a reference card; it refuses the dark-hero-plus-feature-cards
+scaffold of open source launches.
+OWN-WORLD: The product's shipped skin: white paper, black ink, Times display,
+Courier In/Out labels in classic blue #3b5fa4, burnt orange #c1652c reserved
+for natural language, hairline rules, right-edge cell brackets.
+STORY: A visitor recognizes Mathematica at a glance, sees one English
+sentence become an evaluated notebook, drags a real slider and watches the
+math respond, then downloads.
+FIRST VIEWPORT: App chrome across the top with Download and GitHub; left,
+the OpenMat title cell and tagline with the blue download button; right, the
+orange = cell whose sentence generates a miniature notebook, cell by cell.
+FORM: Reference-card poster, candidate 6 of 7, seed 7a59569d; the live
+slider cell fuses the variable-font-specimen challenger.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the
+finish review, the verdict, and DESIGN.md.
+-->
+
+<header class="chrome">
+  <span class="wordmark">OpenMat</span>
+  <nav class="chrome-actions" aria-label="Project links">
+    <span class="chrome-tag">v0.01</span>
+    <a class="chrome-button" href="https://github.com/dhve/OpenMat">GitHub</a>
+    <a class="chrome-button" href="https://github.com/dhve/OpenMat/releases/tag/v0.01">Release notes</a>
+    <a class="chrome-button chrome-button-primary" href="https://github.com/dhve/OpenMat/releases/download/v0.01/OpenMat_0.1.0_aarch64.dmg">Download for macOS</a>
+  </nav>
+</header>
+
+<main class="sheet">
+
+  <section class="masthead">
+    <div>
+      <h1 class="masthead-title">OpenMat</h1>
+      <p class="masthead-sub">Mathematica, rebuilt in Rust, fluent in English.</p>
+      <div class="masthead-facts">
+        <p>An open-source notebook that keeps the Mathematica experience: 2D math input, typeset output, In and Out numbering, and Manipulate sliders that re-solve live as you drag.</p>
+        <p>One symbolic kernel, written in Rust, runs in-process on the desktop and compiles to a 500&nbsp;KB WebAssembly module for the browser. Same engine, everywhere.</p>
+      </div>
+      <div class="masthead-cta">
+        <a class="cta-primary" href="https://github.com/dhve/OpenMat/releases/download/v0.01/OpenMat_0.1.0_aarch64.dmg">Download for macOS</a>
+        <a class="cta-secondary" href="https://github.com/dhve/OpenMat">View source on GitHub</a>
+        <span class="cta-note">v0.01 &middot; Apple Silicon &middot; 5.9 MB &middot; MIT or Apache-2.0</span>
+      </div>
+    </div>
+
+    <div class="sentence-demo cell cell-bracket" aria-label="Natural language example">
+      <div class="freeform-row">
+        <span class="freeform-marker" aria-hidden="true">=</span>
+        <p class="freeform-text">make me a notebook exploring the damped pendulum with a slider for the damping<span class="freeform-caret" aria-hidden="true"></span></p>
+      </div>
+      <p class="freeform-interp"><b>&#8801;</b> interpreted &middot; 5 cells</p>
+      <div class="generated" id="generated">
+        <p class="gen-title">The Damped Pendulum</p>
+        <p class="gen-text">Friction drains energy each swing, so the oscillation decays. Drag c to change how fast.</p>
+        <p class="gen-code"><span class="lbl">In[1]:=</span>NDSolve[{x''[t] + c&nbsp;x'[t] + Sin[x[t]] == 0, x[0] == 2, x'[0] == 0}, x, {t, 0, 20}]</p>
+        <div class="gen-slider"><span style="font-family:var(--font-serif);font-style:italic;">c</span><span class="track"></span><span>0.35</span></div>
+        <p class="gen-section">1. Energy decay</p>
+      </div>
+      <p class="sentence-note">Type <span style="font-family:var(--font-mono);color:var(--freeform);font-weight:700;">=</span> at the start of any cell, or use the bar at the bottom of the window, and one sentence becomes a real notebook: title, prose, equations, sliders, plots, evaluated in place. Bring your own Anthropic key or run a local Ollama model, fully offline.</p>
+    </div>
+  </section>
+
+  <section class="live">
+    <h2 class="live-head">Drag it. The math answers.</h2>
+    <p class="live-sub">In OpenMat, every slider re-evaluates through the kernel on each tick. This one is wired up right here on the page: the same damped oscillation the notebook above set up.</p>
+    <div class="live-cell cell cell-bracket">
+      <span class="cell-label">In[2]:=</span>
+      <div class="live-in">Plot[Exp[-c&nbsp;t]&nbsp;Cos[2&nbsp;Pi&nbsp;t], {t, 0, 8}]</div>
+      <div class="live-slider">
+        <label for="damping">c</label>
+        <input type="range" id="damping" min="0" max="1.2" step="0.01" value="0.35" autocomplete="off">
+        <span class="live-readout" id="readout">c = 0.35</span>
+      </div>
+      <span class="cell-label" style="grid-column:1;">Out[2]=</span>
+      <div class="live-plot">
+        <svg viewBox="0 0 720 300" role="img" aria-label="Damped cosine curve that responds to the damping slider" id="plot">
+          <g id="gridlines"></g>
+          <rect x="56" y="18" width="640" height="230" class="plot-frame"></rect>
+          <g id="ticks"></g>
+          <path id="envelopeTop" class="plot-envelope" d=""></path>
+          <path id="envelopeBottom" class="plot-envelope" d=""></path>
+          <path id="curve" class="plot-curve" d=""></path>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section class="refcard">
+    <h2 class="refcard-head">What the kernel does today</h2>
+    <p class="refcard-sub">v0.01 is a young kernel with honest edges: ODEs are scalar first and second order, Solve reaches quadratics. What is listed here works, in the app and in the browser build.</p>
+    <div class="refcard-cols">
+      <div class="refcol">
+        <h3>Symbolic</h3>
+        <dl>
+          <dt>D[f, x]</dt><dd>derivatives</dd>
+          <dt>Integrate[f, x]</dt><dd>antiderivatives</dd>
+          <dt>Integrate[f, {x, a, b}]</dt><dd>definite integrals, with trig rules and a numeric fallback when no closed form exists</dd>
+          <dt>Solve[eqn, x]</dt><dd>exact roots through quadratics</dd>
+          <dt>Expand &middot; Factor &middot; Simplify</dt><dd>polynomial algebra</dd>
+        </dl>
+      </div>
+      <div class="refcol">
+        <h3>Numeric</h3>
+        <dl>
+          <dt>Plot[f, {x, a, b}]</dt><dd>adaptive sampling, legends, asymptote splitting</dd>
+          <dt>ListPlot[data]</dt><dd>discrete point markers</dd>
+          <dt>NDSolve[{eqs}, x, {t, a, b}]</dt><dd>first and second order ODEs, Dormand-Prince or SUNDIALS</dd>
+          <dt>Manipulate sliders</dt><dd>bind any symbol; the cell re-solves live as you drag</dd>
+        </dl>
+      </div>
+      <div class="refcol">
+        <h3>Session</h3>
+        <dl>
+          <dt>a = 5</dt><dd>definitions persist across cells</dd>
+          <dt>f[x_] := x^2</dt><dd>pattern definitions, visible inside Plot and NDSolve</dd>
+          <dt>Clear[a]</dt><dd>until you say otherwise</dd>
+          <dt>Table[n^2, {n, 1, 8}]</dt><dd>list construction</dd>
+        </dl>
+      </div>
+      <div class="refcol">
+        <h3>Natural language</h3>
+        <dl>
+          <dt><span class="ff">=</span> plot sin x from 0 to 10</dt><dd>one expression, evaluated inline</dd>
+          <dt><span class="ff">=</span> make me a notebook about&hellip;</dt><dd>a full notebook: title, prose, sliders, plots</dd>
+          <dt>Your key or your machine</dt><dd>Anthropic API key, or a local Ollama model with nothing leaving your laptop</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="install">
+    <h2 class="install-head">Install</h2>
+    <div class="install-grid">
+      <div class="install-col">
+        <h3>macOS app</h3>
+        <ol>
+          <li><a href="https://github.com/dhve/OpenMat/releases/download/v0.01/OpenMat_0.1.0_aarch64.dmg">Download OpenMat_0.1.0_aarch64.dmg</a></li>
+          <li>Drag OpenMat to Applications</li>
+          <li>First launch: right-click OpenMat.app, choose Open, then Open again</li>
+        </ol>
+        <p class="install-note">The build is unsigned, which is why macOS asks once. Apple Silicon only for now.</p>
+      </div>
+      <div class="install-col">
+        <h3>From source</h3>
+        <pre class="codeblock">git clone https://github.com/dhve/OpenMat.git
+cd OpenMat/app &amp;&amp; npm install
+npm run tauri dev   <span class="c"># desktop app</span>
+npm run dev         <span class="c"># browser, same kernel</span></pre>
+        <p class="install-note">Rust workspace tests: <span style="font-family:var(--font-mono);">cargo test --workspace</span>. Needs cmake for the vendored SUNDIALS build.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p><span class="out-label">Out[3]=</span>Dual-licensed under MIT or Apache-2.0. The notebook output shown on this page is real kernel output.</p>
+    <nav class="footer-links" aria-label="Footer links">
+      <a href="https://github.com/dhve/OpenMat">GitHub</a>
+      <a href="https://github.com/dhve/OpenMat/releases/tag/v0.01">v0.01 release</a>
+      <a href="https://github.com/dhve/OpenMat/blob/main/ARCHITECTURE.md">Architecture</a>
+    </nav>
+  </footer>
+
+</main>
+
+<script>
+  // The live cell: e^(-c t) cos(2 pi t) over t in [0, 8], redrawn per tick.
+  (function () {
+    var W = 720, H = 300, L = 56, T = 18, PW = 640, PH = 230;
+    var T0 = 0, T1 = 8, YMIN = -1.05, YMAX = 1.05;
+    var slider = document.getElementById("damping");
+    var readout = document.getElementById("readout");
+    var curve = document.getElementById("curve");
+    var envTop = document.getElementById("envelopeTop");
+    var envBottom = document.getElementById("envelopeBottom");
+
+    function sx(t) { return L + ((t - T0) / (T1 - T0)) * PW; }
+    function sy(v) { return T + PH - ((v - YMIN) / (YMAX - YMIN)) * PH; }
+
+    function pathFor(f) {
+      var d = [];
+      for (var i = 0; i <= 480; i++) {
+        var t = T0 + (i / 480) * (T1 - T0);
+        d.push((i ? "L" : "M") + sx(t).toFixed(1) + " " + sy(f(t)).toFixed(1));
+      }
+      return d.join(" ");
+    }
+
+    function draw() {
+      var c = parseFloat(slider.value);
+      readout.textContent = "c = " + c.toFixed(2);
+      curve.setAttribute("d", pathFor(function (t) { return Math.exp(-c * t) * Math.cos(2 * Math.PI * t); }));
+      envTop.setAttribute("d", pathFor(function (t) { return Math.exp(-c * t); }));
+      envBottom.setAttribute("d", pathFor(function (t) { return -Math.exp(-c * t); }));
+    }
+
+    // Frame furniture: gridlines and tick labels, drawn once.
+    var grid = document.getElementById("gridlines");
+    var ticks = document.getElementById("ticks");
+    var svgNS = "http://www.w3.org/2000/svg";
+    [0, 2, 4, 6, 8].forEach(function (t) {
+      var x = sx(t);
+      var line = document.createElementNS(svgNS, "line");
+      line.setAttribute("x1", x); line.setAttribute("x2", x);
+      line.setAttribute("y1", T); line.setAttribute("y2", T + PH);
+      line.setAttribute("class", "plot-grid");
+      grid.appendChild(line);
+      var label = document.createElementNS(svgNS, "text");
+      label.setAttribute("x", x); label.setAttribute("y", T + PH + 18);
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("class", "plot-tick-label");
+      label.textContent = t;
+      ticks.appendChild(label);
+    });
+    [-1, 0, 1].forEach(function (v) {
+      var y = sy(v);
+      var line = document.createElementNS(svgNS, "line");
+      line.setAttribute("x1", L); line.setAttribute("x2", L + PW);
+      line.setAttribute("y1", y); line.setAttribute("y2", y);
+      line.setAttribute("class", "plot-grid");
+      grid.appendChild(line);
+      var label = document.createElementNS(svgNS, "text");
+      label.setAttribute("x", L - 8); label.setAttribute("y", y + 4);
+      label.setAttribute("text-anchor", "end");
+      label.setAttribute("class", "plot-tick-label");
+      label.textContent = v;
+      ticks.appendChild(label);
+    });
+
+    slider.addEventListener("input", draw);
+    // Deterministic first paint: browsers may restore a stale slider value
+    // across reloads, and c = 0 would show an undamped curve.
+    slider.value = "0.35";
+    draw();
+
+    // The generated-notebook cascade plays once, when it scrolls into view.
+    var generated = document.getElementById("generated");
+    if ("IntersectionObserver" in window) {
+      var seen = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            generated.classList.add("play");
+            seen.disconnect();
+          }
+        });
+      }, { threshold: 0.4 });
+      seen.observe(generated);
+    } else {
+      generated.classList.add("play");
+    }
+  })();
+</script>
+</body>
+</html>
