@@ -1,146 +1,321 @@
 {
-  "schemaVersion": 2,
-  "generatedAt": "2026-08-03T00:00:00Z",
-  "title": "Design System: OpenMat",
-  "extensions": {
-    "colorMeta": {
-      "accent": {
-        "role": "primary",
-        "displayName": "Notebook Blue",
-        "canonical": "#3b5fa4",
-        "tonalRamp": ["oklch(15% 0.09 262)", "oklch(27% 0.10 262)", "oklch(38% 0.11 262)", "oklch(48% 0.11 262)", "oklch(60% 0.10 262)", "oklch(71% 0.08 262)", "oklch(83% 0.05 262)", "oklch(95% 0.02 262)"]
-      },
-      "freeform": {
-        "role": "secondary",
-        "displayName": "Freeform Orange",
-        "canonical": "#c1652c",
-        "tonalRamp": ["oklch(15% 0.06 55)", "oklch(27% 0.09 55)", "oklch(40% 0.12 55)", "oklch(51% 0.13 55)", "oklch(58% 0.13 55)", "oklch(70% 0.10 55)", "oklch(83% 0.06 55)", "oklch(95% 0.02 55)"]
-      },
-      "plot-green": {
-        "role": "tertiary",
-        "displayName": "Plot Green",
-        "canonical": "#4f8f57",
-        "tonalRamp": ["oklch(15% 0.05 150)", "oklch(27% 0.07 150)", "oklch(38% 0.09 150)", "oklch(50% 0.10 150)", "oklch(59% 0.10 150)", "oklch(71% 0.08 150)", "oklch(83% 0.05 150)", "oklch(95% 0.02 150)"]
-      },
-      "ink": {
-        "role": "neutral",
-        "displayName": "Ink",
-        "canonical": "#1a1a1a",
-        "tonalRamp": ["#1a1a1a", "#2e2e2e", "#545454", "#767676", "#9a9a9a", "#c9c9c9", "#e6e6e6", "#ffffff"]
-      },
-      "paper": {
-        "role": "neutral",
-        "displayName": "Paper",
-        "canonical": "#ffffff",
-        "tonalRamp": ["#1a1a1a", "#545454", "#767676", "#9a9a9a", "#c9c9c9", "#e6e6e6", "#fafafa", "#ffffff"]
-      }
-    },
-    "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Masthead title only; the wordmark set as a Times headline." },
-      "headline": { "displayName": "Headline", "purpose": "Section heads on the site (27px) and the app's Title cell (28px)." },
-      "title": { "displayName": "Title", "purpose": "Subsection and reference-column heads; the app's Section cell." },
-      "body": { "displayName": "Body", "purpose": "All running prose, in the system UI sans." },
-      "label": { "displayName": "Label", "purpose": "In[n]:=/Out[n]= labels and mono metadata, Notebook Blue at ~0.85 opacity." }
-    },
-    "shadows": [
-      { "name": "floating-bar", "value": "0 3px 14px rgba(0, 0, 0, 0.09)", "purpose": "Only for fixed chrome layered over the page (the docked natural language bar). Content itself never casts a shadow; the app theme sets --shadow-cell: none." }
+ "schemaVersion": 2,
+ "generatedAt": "2026-08-03T00:00:00Z",
+ "title": "Design System: OpenMat",
+ "extensions": {
+  "colorMeta": {
+   "accent": {
+    "role": "primary",
+    "displayName": "Notebook Blue",
+    "canonical": "#3b5fa4",
+    "tonalRamp": [
+     "oklch(15% 0.09 262)",
+     "oklch(27% 0.10 262)",
+     "oklch(38% 0.11 262)",
+     "oklch(48% 0.11 262)",
+     "oklch(60% 0.10 262)",
+     "oklch(71% 0.08 262)",
+     "oklch(83% 0.05 262)",
+     "oklch(95% 0.02 262)"
     ],
-    "motion": [
-      { "name": "state-quick", "value": "0.1s-0.12s ease", "purpose": "Border-color, background, and color transitions on hover and focus." },
-      { "name": "cell-land", "value": "0.5s cubic-bezier(0.16, 1, 0.3, 1), staggered 0.25s", "purpose": "The generated-notebook cascade: cells rise 6px and fade in, once, on scroll into view." },
-      { "name": "caret-blink", "value": "1.1s steps(1) infinite", "purpose": "The orange typing caret in the freeform demo." }
-    ],
-    "breakpoints": [
-      { "name": "narrow", "value": "560px" },
-      { "name": "mid", "value": "900px" }
+    "states": {
+     "hover": "#33538f"
+    },
+    "aliases": [
+     "#33538f"
     ]
+   },
+   "freeform": {
+    "role": "secondary",
+    "displayName": "Freeform Orange",
+    "canonical": "#c1652c",
+    "tonalRamp": [
+     "oklch(15% 0.06 55)",
+     "oklch(27% 0.09 55)",
+     "oklch(40% 0.12 55)",
+     "oklch(51% 0.13 55)",
+     "oklch(58% 0.13 55)",
+     "oklch(70% 0.10 55)",
+     "oklch(83% 0.06 55)",
+     "oklch(95% 0.02 55)"
+    ]
+   },
+   "plot-green": {
+    "role": "tertiary",
+    "displayName": "Plot Green",
+    "canonical": "#4f8f57",
+    "tonalRamp": [
+     "oklch(15% 0.05 150)",
+     "oklch(27% 0.07 150)",
+     "oklch(38% 0.09 150)",
+     "oklch(50% 0.10 150)",
+     "oklch(59% 0.10 150)",
+     "oklch(71% 0.08 150)",
+     "oklch(83% 0.05 150)",
+     "oklch(95% 0.02 150)"
+    ]
+   },
+   "ink": {
+    "role": "neutral",
+    "displayName": "Ink",
+    "canonical": "#1a1a1a",
+    "tonalRamp": [
+     "#1a1a1a",
+     "#2e2e2e",
+     "#545454",
+     "#767676",
+     "#9a9a9a",
+     "#c9c9c9",
+     "#e6e6e6",
+     "#ffffff"
+    ]
+   },
+   "paper": {
+    "role": "neutral",
+    "displayName": "Paper",
+    "canonical": "#ffffff",
+    "tonalRamp": [
+     "#1a1a1a",
+     "#545454",
+     "#767676",
+     "#9a9a9a",
+     "#c9c9c9",
+     "#e6e6e6",
+     "#fafafa",
+     "#ffffff"
+    ],
+    "aliases": [
+     "#f6f6f6",
+     "#fafafa"
+    ]
+   }
   },
-  "components": [
-    {
-      "name": "Primary CTA Button",
-      "kind": "button",
-      "refersTo": "button-primary",
-      "description": "The blue download action; the strongest element on any surface.",
-      "html": "<a class=\"ds-cta-primary\" href=\"#\">Download for macOS</a>",
-      "css": ".ds-cta-primary { display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 600; padding: 11px 22px; border-radius: 3px; background: #3b5fa4; color: #ffffff; border: 1px solid #3b5fa4; text-decoration: none; } .ds-cta-primary:hover { background: #33538f; } .ds-cta-primary:focus-visible { outline: 2px solid #3b5fa4; outline-offset: 2px; }"
-    },
-    {
-      "name": "Secondary Button",
-      "kind": "button",
-      "refersTo": "button-secondary",
-      "description": "Quiet white button with a hairline border; hover fills with the blue wash.",
-      "html": "<a class=\"ds-cta-secondary\" href=\"#\">View source on GitHub</a>",
-      "css": ".ds-cta-secondary { display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 15px; padding: 11px 18px; border-radius: 3px; border: 1px solid #c9c9c9; background: #ffffff; color: #1a1a1a; text-decoration: none; } .ds-cta-secondary:hover { border-color: #3b5fa4; background: #eaf0fa; } .ds-cta-secondary:focus-visible { outline: 2px solid #3b5fa4; outline-offset: 2px; }"
-    },
-    {
-      "name": "Chrome Button",
-      "kind": "nav",
-      "refersTo": "chrome-button",
-      "description": "Header-scale quiet button used in the app chrome bar.",
-      "html": "<a class=\"ds-chrome-button\" href=\"#\">GitHub</a>",
-      "css": ".ds-chrome-button { display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13px; padding: 5px 13px; border: 1px solid #c9c9c9; border-radius: 3px; background: #ffffff; color: #1a1a1a; text-decoration: none; transition: background 0.12s ease, border-color 0.12s ease; } .ds-chrome-button:hover { background: #eaf0fa; border-color: #3b5fa4; } .ds-chrome-button:focus-visible { outline: 2px solid #3b5fa4; outline-offset: 2px; }"
-    },
-    {
-      "name": "Notebook Cell with Bracket",
-      "kind": "custom",
-      "description": "The signature unit: flat transparent cell, mono blue In label, right-edge hairline bracket marking extent.",
-      "html": "<div class=\"ds-cell\"><span class=\"ds-cell-label\">In[1]:=</span><span class=\"ds-cell-code\">Plot[Exp[-c t] Cos[2 Pi t], {t, 0, 8}]</span></div>",
-      "css": ".ds-cell { position: relative; display: flex; align-items: flex-start; gap: 10px; padding: 6px 20px 6px 0; background: transparent; } .ds-cell::after { content: \"\"; position: absolute; top: 4px; bottom: 4px; right: 0; width: 7px; border-top: 1.5px solid #c9c9c9; border-right: 1.5px solid #c9c9c9; border-bottom: 1.5px solid #c9c9c9; border-radius: 0 3px 3px 0; transition: border-color 0.1s ease; } .ds-cell:hover::after { border-color: #3b5fa4; } .ds-cell-label { flex-shrink: 0; font-family: 'Courier New', Courier, Menlo, monospace; font-size: 12px; color: #3b5fa4; opacity: 0.85; user-select: none; } .ds-cell-code { font-family: 'Courier New', Courier, Menlo, monospace; font-size: 14px; color: #1a1a1a; }"
-    },
-    {
-      "name": "Freeform Bar",
-      "kind": "input",
-      "description": "The docked natural language input: orange = marker, borderless field, outlined Go button; border turns orange on focus.",
-      "html": "<div class=\"ds-freeform-bar\"><span class=\"ds-freeform-marker\">=</span><input class=\"ds-freeform-input\" type=\"text\" placeholder=\"make me a notebook exploring the damped pendulum\"><button class=\"ds-freeform-go\">Go</button></div>",
-      "css": ".ds-freeform-bar { display: flex; align-items: center; gap: 9px; padding: 7px 9px; background: #ffffff; border: 1px solid #c9c9c9; border-radius: 7px; box-shadow: 0 3px 14px rgba(0, 0, 0, 0.09); } .ds-freeform-bar:focus-within { border-color: #c1652c; } .ds-freeform-marker { flex-shrink: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 3px; background: #c1652c; color: #ffffff; font-family: 'Courier New', Courier, Menlo, monospace; font-size: 14px; font-weight: 700; user-select: none; } .ds-freeform-input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; color: #1a1a1a; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14.5px; padding: 4px 2px; } .ds-freeform-input::placeholder { color: #9a9a9a; } .ds-freeform-go { flex-shrink: 0; border: 1px solid #c1652c; border-radius: 3px; background: transparent; color: #c1652c; font-size: 13px; padding: 4px 12px; cursor: pointer; transition: background 0.12s ease, color 0.12s ease; } .ds-freeform-go:hover { background: #c1652c; color: #ffffff; } .ds-freeform-go:focus-visible { outline: 2px solid #c1652c; outline-offset: 2px; }"
-    },
-    {
-      "name": "Code Block",
-      "kind": "card",
-      "description": "Mono block on the faintest off-white with a soft hairline; comments in faint ink.",
-      "html": "<pre class=\"ds-codeblock\">git clone https://github.com/dhve/OpenMat.git\nnpm run tauri dev   <span class=\"ds-codeblock-c\"># desktop app</span></pre>",
-      "css": ".ds-codeblock { font-family: 'Courier New', Courier, Menlo, monospace; font-size: 12.5px; line-height: 1.7; background: #fafafa; border: 1px solid #e6e6e6; border-radius: 3px; padding: 14px 16px; overflow-x: auto; color: #1a1a1a; margin: 0; } .ds-codeblock-c { color: #9a9a9a; }"
-    },
-    {
-      "name": "Reference Card Column",
-      "kind": "custom",
-      "description": "Ruled reference-card column: blue serif head, mono terms, soft-ink descriptions.",
-      "html": "<div class=\"ds-refcol\"><h3 class=\"ds-refcol-h\">Symbolic</h3><dl class=\"ds-refcol-dl\"><dt class=\"ds-refcol-dt\">D[f, x]</dt><dd class=\"ds-refcol-dd\">derivatives</dd><dt class=\"ds-refcol-dt\">Solve[eqn, x]</dt><dd class=\"ds-refcol-dd\">exact roots through quadratics</dd></dl></div>",
-      "css": ".ds-refcol { padding: 0 22px 12px 0; border-left: 1px solid #e6e6e6; padding-left: 22px; background: #ffffff; } .ds-refcol-h { font-family: 'Times New Roman', Times, Georgia, serif; font-size: 17px; font-weight: 700; color: #3b5fa4; margin: 0 0 14px; } .ds-refcol-dl { font-size: 13px; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif; } .ds-refcol-dt { font-family: 'Courier New', Courier, Menlo, monospace; font-size: 12.5px; color: #1a1a1a; margin-top: 12px; } .ds-refcol-dt:first-child { margin-top: 0; } .ds-refcol-dd { color: #545454; margin: 2px 0 0; }"
-    }
+  "typographyMeta": {
+   "display": {
+    "displayName": "Display",
+    "purpose": "Masthead title only; the wordmark set as a Times headline."
+   },
+   "headline": {
+    "displayName": "Headline",
+    "purpose": "Section heads on the site (27px) and the app's Title cell (28px)."
+   },
+   "title": {
+    "displayName": "Title",
+    "purpose": "Subsection and reference-column heads; the app's Section cell."
+   },
+   "body": {
+    "displayName": "Body",
+    "purpose": "All running prose, in the system UI sans."
+   },
+   "label": {
+    "displayName": "Label",
+    "purpose": "In[n]:=/Out[n]= labels and mono metadata, Notebook Blue at ~0.85 opacity."
+   },
+   "wordmark": {
+    "displayName": "Wordmark",
+    "purpose": "The OpenMat name in app chrome headers",
+    "fontFamily": "'Times New Roman', Times, Georgia, serif",
+    "fontSize": "19px",
+    "fontWeight": 700
+   },
+   "docs-display": {
+    "displayName": "Docs Display",
+    "purpose": "Interior page titles, quieter than the masthead",
+    "fontFamily": "'Times New Roman', Times, Georgia, serif",
+    "fontSize": "clamp(34px, 5vw, 46px)",
+    "fontWeight": 700
+   },
+   "lead": {
+    "displayName": "Lead",
+    "purpose": "Masthead subline and freeform sentences",
+    "fontFamily": "serif for taglines, sans for freeform text",
+    "fontSize": "clamp(20px, 2.4vw, 26px) serif; 16.5px sans"
+   },
+   "control": {
+    "displayName": "Control",
+    "purpose": "Chrome buttons, footers, install notes, table body",
+    "fontFamily": "system UI sans",
+    "fontSize": "13px to 14.5px"
+   },
+   "micro": {
+    "displayName": "Micro",
+    "purpose": "SVG plot tick labels",
+    "fontFamily": "system UI sans",
+    "fontSize": "11px to 12px"
+   }
+  },
+  "shadows": [
+   {
+    "name": "floating-bar",
+    "value": "0 3px 14px rgba(0, 0, 0, 0.09)",
+    "purpose": "Only for fixed chrome layered over the page (the docked natural language bar). Content itself never casts a shadow; the app theme sets --shadow-cell: none."
+   }
   ],
-  "narrative": {
-    "northStar": "The Evaluated Page",
-    "overview": "Every OpenMat surface is a Mathematica notebook page: white paper, black ink, typeset math, and the quiet furniture of a scientific document. The desktop app defined the world (app/src/styles/theme.css is the canonical token source), and the landing page proved that the same skin extends to marketing without borrowing anything from launch-page convention. There is no dark hero, no gradient, no card grid. The page header is the app's own chrome bar, the footer signs off as Out[3]=, and the feature list is a ruled reference card. The system is flat, dense with meaning, and almost entirely monochrome. Two chromatic voices carry all the signal: the classic notebook blue (#3b5fa4) for labels, evaluation, selection, and the primary action; and burnt orange (#c1652c) for exactly one idea, natural language input. Structure is drawn, never floated: hairline rules and right-edge cell brackets mark extent, and nothing sits on a shadowed card.",
-    "keyCharacteristics": [
-      "Paper-white ground with a near-black ink scale; color is rare and semantic",
-      "Times-family serif for display voice, Courier-family mono for In/Out machinery, system sans for prose",
-      "Flat, borderless cells; the right-edge bracket is the unit of composition",
-      "Hairline rules (1px, #c9c9c9 / #e6e6e6) do all separation work",
-      "The orange = marker means \"this is English\" everywhere it appears"
-    ],
-    "rules": [
-      { "name": "The Orange Means English Rule", "body": "Burnt orange (#c1652c) is reserved for natural language affordances: the = marker, the interpretation line, the freeform bar's focus and Go button. Its single exception is native, not decorative: it is also the second color of the plot curve cycle inside rendered output. Never use it for generic emphasis, warnings, or a second brand accent.", "section": "colors" },
-      { "name": "The One Wash Rule", "body": "#eaf0fa is the only background tint. Everything else sits directly on white.", "section": "colors" },
-      { "name": "The Blue Label Rule", "body": "Every In[n]:=/Out[n]= label is Courier mono, 12px, Notebook Blue at reduced opacity, right of nothing and left of the content it numbers. Labels are furniture: user-select is off.", "section": "typography" },
-      { "name": "The Serif Speaks, Sans Explains Rule", "body": "Serif is reserved for titles, section heads, and italic math variables (the slider's c). Running prose is always the UI sans. Mono never carries prose.", "section": "typography" },
-      { "name": "The Flat Paper Rule", "body": "Content never casts a shadow. If an element needs a boundary, draw a hairline; if it needs extent, give it a bracket. Shadows are permitted only on chrome that physically overlaps the page.", "section": "elevation" },
-      { "name": "The Bracket, Not the Card Rule", "body": "A cell's extent is marked by its right-edge bracket, never by a box, background, or shadow around the content. Cells are transparent and flush against the paper.", "section": "shapes" }
-    ],
-    "dos": [
-      "Do put every surface on pure white (#ffffff) with the ink scale; reach for Blue Wash (#eaf0fa) only as a hover or selection tint.",
-      "Do mark cell-like content with the right-edge bracket (7px, 1.5px #c9c9c9 hairline, 0 3px 3px 0 radius) and a mono blue label.",
-      "Do separate sections and columns with 1px hairline rules, #c9c9c9 for major seams, #e6e6e6 for minor ones.",
-      "Do use serif 700 for every heading level and keep prose in the system sans at 13.5 to 15px.",
-      "Do pair every orange element with a natural language meaning: the = chip, the interpreted line, the freeform focus state.",
-      "Do honor prefers-reduced-motion for any animation beyond a state transition."
-    ],
-    "donts": [
-      "Don't put cards, background panels, or shadows around content; --shadow-cell is none, and only floating chrome may cast the 0 3px 14px shadow.",
-      "Don't use orange for emphasis, alerts, or branding outside natural language affordances and the plot curve cycle.",
-      "Don't introduce a second surface color, gradients, or a dark section; the world is one continuous sheet of paper.",
-      "Don't exceed the 3px system radius on content elements (7px is reserved for the docked bar; circles only for the slider thumb and insert-plus dot).",
-      "Don't brand the language feature as AI in any surface; it is \"natural language input\", marked by the orange =."
-    ]
+  "motion": [
+   {
+    "name": "state-quick",
+    "value": "0.1s-0.12s ease",
+    "purpose": "Border-color, background, and color transitions on hover and focus."
+   },
+   {
+    "name": "cell-land",
+    "value": "0.5s cubic-bezier(0.16, 1, 0.3, 1), staggered 0.25s",
+    "purpose": "The generated-notebook cascade: cells rise 6px and fade in, once, on scroll into view."
+   },
+   {
+    "name": "caret-blink",
+    "value": "1.1s steps(1) infinite",
+    "purpose": "The orange typing caret in the freeform demo."
+   }
+  ],
+  "breakpoints": [
+   {
+    "name": "narrow",
+    "value": "560px"
+   },
+   {
+    "name": "mid",
+    "value": "900px"
+   }
+  ],
+  "recognizedFontSizes": [
+   "11px",
+   "12px",
+   "12.5px",
+   "13px",
+   "13.5px",
+   "14px",
+   "14.5px",
+   "15px",
+   "15.5px",
+   "16.5px",
+   "17px",
+   "18px",
+   "19px",
+   "20px",
+   "21px",
+   "24px",
+   "26px",
+   "27px",
+   "28px",
+   "34px",
+   "46px",
+   "52px",
+   "84px",
+   "0.92em",
+   "1.16em"
+  ]
+ },
+ "components": [
+  {
+   "name": "Primary CTA Button",
+   "kind": "button",
+   "refersTo": "button-primary",
+   "description": "The blue download action; the strongest element on any surface.",
+   "html": "<a class=\"ds-cta-primary\" href=\"#\">Download for macOS</a>",
+   "css": ".ds-cta-primary { display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 600; padding: 11px 22px; border-radius: 3px; background: #3b5fa4; color: #ffffff; border: 1px solid #3b5fa4; text-decoration: none; } .ds-cta-primary:hover { background: #33538f; } .ds-cta-primary:focus-visible { outline: 2px solid #3b5fa4; outline-offset: 2px; }"
+  },
+  {
+   "name": "Secondary Button",
+   "kind": "button",
+   "refersTo": "button-secondary",
+   "description": "Quiet white button with a hairline border; hover fills with the blue wash.",
+   "html": "<a class=\"ds-cta-secondary\" href=\"#\">View source on GitHub</a>",
+   "css": ".ds-cta-secondary { display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 15px; padding: 11px 18px; border-radius: 3px; border: 1px solid #c9c9c9; background: #ffffff; color: #1a1a1a; text-decoration: none; } .ds-cta-secondary:hover { border-color: #3b5fa4; background: #eaf0fa; } .ds-cta-secondary:focus-visible { outline: 2px solid #3b5fa4; outline-offset: 2px; }"
+  },
+  {
+   "name": "Chrome Button",
+   "kind": "nav",
+   "refersTo": "chrome-button",
+   "description": "Header-scale quiet button used in the app chrome bar.",
+   "html": "<a class=\"ds-chrome-button\" href=\"#\">GitHub</a>",
+   "css": ".ds-chrome-button { display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13px; padding: 5px 13px; border: 1px solid #c9c9c9; border-radius: 3px; background: #ffffff; color: #1a1a1a; text-decoration: none; transition: background 0.12s ease, border-color 0.12s ease; } .ds-chrome-button:hover { background: #eaf0fa; border-color: #3b5fa4; } .ds-chrome-button:focus-visible { outline: 2px solid #3b5fa4; outline-offset: 2px; }"
+  },
+  {
+   "name": "Notebook Cell with Bracket",
+   "kind": "custom",
+   "description": "The signature unit: flat transparent cell, mono blue In label, right-edge hairline bracket marking extent.",
+   "html": "<div class=\"ds-cell\"><span class=\"ds-cell-label\">In[1]:=</span><span class=\"ds-cell-code\">Plot[Exp[-c t] Cos[2 Pi t], {t, 0, 8}]</span></div>",
+   "css": ".ds-cell { position: relative; display: flex; align-items: flex-start; gap: 10px; padding: 6px 20px 6px 0; background: transparent; } .ds-cell::after { content: \"\"; position: absolute; top: 4px; bottom: 4px; right: 0; width: 7px; border-top: 1.5px solid #c9c9c9; border-right: 1.5px solid #c9c9c9; border-bottom: 1.5px solid #c9c9c9; border-radius: 0 3px 3px 0; transition: border-color 0.1s ease; } .ds-cell:hover::after { border-color: #3b5fa4; } .ds-cell-label { flex-shrink: 0; font-family: 'Courier New', Courier, Menlo, monospace; font-size: 12px; color: #3b5fa4; opacity: 0.85; user-select: none; } .ds-cell-code { font-family: 'Courier New', Courier, Menlo, monospace; font-size: 14px; color: #1a1a1a; }"
+  },
+  {
+   "name": "Freeform Bar",
+   "kind": "input",
+   "description": "The docked natural language input: orange = marker, borderless field, outlined Go button; border turns orange on focus.",
+   "html": "<div class=\"ds-freeform-bar\"><span class=\"ds-freeform-marker\">=</span><input class=\"ds-freeform-input\" type=\"text\" placeholder=\"make me a notebook exploring the damped pendulum\"><button class=\"ds-freeform-go\">Go</button></div>",
+   "css": ".ds-freeform-bar { display: flex; align-items: center; gap: 9px; padding: 7px 9px; background: #ffffff; border: 1px solid #c9c9c9; border-radius: 7px; box-shadow: 0 3px 14px rgba(0, 0, 0, 0.09); } .ds-freeform-bar:focus-within { border-color: #c1652c; } .ds-freeform-marker { flex-shrink: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 3px; background: #c1652c; color: #ffffff; font-family: 'Courier New', Courier, Menlo, monospace; font-size: 14px; font-weight: 700; user-select: none; } .ds-freeform-input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; color: #1a1a1a; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14.5px; padding: 4px 2px; } .ds-freeform-input::placeholder { color: #9a9a9a; } .ds-freeform-go { flex-shrink: 0; border: 1px solid #c1652c; border-radius: 3px; background: transparent; color: #c1652c; font-size: 13px; padding: 4px 12px; cursor: pointer; transition: background 0.12s ease, color 0.12s ease; } .ds-freeform-go:hover { background: #c1652c; color: #ffffff; } .ds-freeform-go:focus-visible { outline: 2px solid #c1652c; outline-offset: 2px; }"
+  },
+  {
+   "name": "Code Block",
+   "kind": "card",
+   "description": "Mono block on the faintest off-white with a soft hairline; comments in faint ink.",
+   "html": "<pre class=\"ds-codeblock\">git clone https://github.com/dhve/OpenMat.git\nnpm run tauri dev   <span class=\"ds-codeblock-c\"># desktop app</span></pre>",
+   "css": ".ds-codeblock { font-family: 'Courier New', Courier, Menlo, monospace; font-size: 12.5px; line-height: 1.7; background: #fafafa; border: 1px solid #e6e6e6; border-radius: 3px; padding: 14px 16px; overflow-x: auto; color: #1a1a1a; margin: 0; } .ds-codeblock-c { color: #9a9a9a; }"
+  },
+  {
+   "name": "Reference Card Column",
+   "kind": "custom",
+   "description": "Ruled reference-card column: blue serif head, mono terms, soft-ink descriptions.",
+   "html": "<div class=\"ds-refcol\"><h3 class=\"ds-refcol-h\">Symbolic</h3><dl class=\"ds-refcol-dl\"><dt class=\"ds-refcol-dt\">D[f, x]</dt><dd class=\"ds-refcol-dd\">derivatives</dd><dt class=\"ds-refcol-dt\">Solve[eqn, x]</dt><dd class=\"ds-refcol-dd\">exact roots through quadratics</dd></dl></div>",
+   "css": ".ds-refcol { padding: 0 22px 12px 0; border-left: 1px solid #e6e6e6; padding-left: 22px; background: #ffffff; } .ds-refcol-h { font-family: 'Times New Roman', Times, Georgia, serif; font-size: 17px; font-weight: 700; color: #3b5fa4; margin: 0 0 14px; } .ds-refcol-dl { font-size: 13px; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif; } .ds-refcol-dt { font-family: 'Courier New', Courier, Menlo, monospace; font-size: 12.5px; color: #1a1a1a; margin-top: 12px; } .ds-refcol-dt:first-child { margin-top: 0; } .ds-refcol-dd { color: #545454; margin: 2px 0 0; }"
   }
+ ],
+ "narrative": {
+  "northStar": "The Evaluated Page",
+  "overview": "Every OpenMat surface is a Mathematica notebook page: white paper, black ink, typeset math, and the quiet furniture of a scientific document. The desktop app defined the world (app/src/styles/theme.css is the canonical token source), and the landing page proved that the same skin extends to marketing without borrowing anything from launch-page convention. There is no dark hero, no gradient, no card grid. The page header is the app's own chrome bar, the footer signs off as Out[3]=, and the feature list is a ruled reference card. The system is flat, dense with meaning, and almost entirely monochrome. Two chromatic voices carry all the signal: the classic notebook blue (#3b5fa4) for labels, evaluation, selection, and the primary action; and burnt orange (#c1652c) for exactly one idea, natural language input. Structure is drawn, never floated: hairline rules and right-edge cell brackets mark extent, and nothing sits on a shadowed card.",
+  "keyCharacteristics": [
+   "Paper-white ground with a near-black ink scale; color is rare and semantic",
+   "Times-family serif for display voice, Courier-family mono for In/Out machinery, system sans for prose",
+   "Flat, borderless cells; the right-edge bracket is the unit of composition",
+   "Hairline rules (1px, #c9c9c9 / #e6e6e6) do all separation work",
+   "The orange = marker means \"this is English\" everywhere it appears"
+  ],
+  "rules": [
+   {
+    "name": "The Orange Means English Rule",
+    "body": "Burnt orange (#c1652c) is reserved for natural language affordances: the = marker, the interpretation line, the freeform bar's focus and Go button. Its single exception is native, not decorative: it is also the second color of the plot curve cycle inside rendered output. Never use it for generic emphasis, warnings, or a second brand accent.",
+    "section": "colors"
+   },
+   {
+    "name": "The One Wash Rule",
+    "body": "#eaf0fa is the only background tint. Everything else sits directly on white.",
+    "section": "colors"
+   },
+   {
+    "name": "The Blue Label Rule",
+    "body": "Every In[n]:=/Out[n]= label is Courier mono, 12px, Notebook Blue at reduced opacity, right of nothing and left of the content it numbers. Labels are furniture: user-select is off.",
+    "section": "typography"
+   },
+   {
+    "name": "The Serif Speaks, Sans Explains Rule",
+    "body": "Serif is reserved for titles, section heads, and italic math variables (the slider's c). Running prose is always the UI sans. Mono never carries prose.",
+    "section": "typography"
+   },
+   {
+    "name": "The Flat Paper Rule",
+    "body": "Content never casts a shadow. If an element needs a boundary, draw a hairline; if it needs extent, give it a bracket. Shadows are permitted only on chrome that physically overlaps the page.",
+    "section": "elevation"
+   },
+   {
+    "name": "The Bracket, Not the Card Rule",
+    "body": "A cell's extent is marked by its right-edge bracket, never by a box, background, or shadow around the content. Cells are transparent and flush against the paper.",
+    "section": "shapes"
+   }
+  ],
+  "dos": [
+   "Do put every surface on pure white (#ffffff) with the ink scale; reach for Blue Wash (#eaf0fa) only as a hover or selection tint.",
+   "Do mark cell-like content with the right-edge bracket (7px, 1.5px #c9c9c9 hairline, 0 3px 3px 0 radius) and a mono blue label.",
+   "Do separate sections and columns with 1px hairline rules, #c9c9c9 for major seams, #e6e6e6 for minor ones.",
+   "Do use serif 700 for every heading level and keep prose in the system sans at 13.5 to 15px.",
+   "Do pair every orange element with a natural language meaning: the = chip, the interpreted line, the freeform focus state.",
+   "Do honor prefers-reduced-motion for any animation beyond a state transition."
+  ],
+  "donts": [
+   "Don't put cards, background panels, or shadows around content; --shadow-cell is none, and only floating chrome may cast the 0 3px 14px shadow.",
+   "Don't use orange for emphasis, alerts, or branding outside natural language affordances and the plot curve cycle.",
+   "Don't introduce a second surface color, gradients, or a dark section; the world is one continuous sheet of paper.",
+   "Don't exceed the 3px system radius on content elements (7px is reserved for the docked bar; circles only for the slider thumb and insert-plus dot).",
+   "Don't brand the language feature as AI in any surface; it is \"natural language input\", marked by the orange =."
+  ]
+ }
 }

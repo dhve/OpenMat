@@ -2,7 +2,7 @@
 
 **The open-source, local-first, AI-native alternative to Mathematica.**
 
-Website: [openmat.tools](https://openmat.tools)
+Website: [openmat.tools](https://openmat.tools) &middot; Language reference: [openmat.tools/language](https://openmat.tools/language/) (also in this repo: [docs/language.md](docs/language.md))
 
 A WL-shaped language kernel in Rust, a numeric solving layer, and a desktop notebook with structural 2D math input and live Manipulate-style interactivity. The whole stack runs on your machine (in-process on desktop, WebAssembly in the browser), and natural language is a first-class input: one sentence writes and evaluates a whole notebook, with your own API key or a fully local model.
 

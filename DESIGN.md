@@ -1,6 +1,6 @@
 ---
 name: OpenMat
-description: Mathematica, rebuilt in Rust, fluent in English. One notebook skin for the app and every surface that speaks for it.
+description: The open-source, local-first, AI-native alternative to Mathematica. One notebook skin for the app and every surface that speaks for it.
 colors:
   paper: "#ffffff"
   ink: "#1a1a1a"
@@ -9,8 +9,11 @@ colors:
   rule: "#c9c9c9"
   rule-soft: "#e6e6e6"
   accent: "#3b5fa4"
+  accent-pressed: "#33538f"
   accent-ink: "#ffffff"
   accent-soft: "#eaf0fa"
+  code-wash: "#fafafa"
+  code-wash-inline: "#f6f6f6"
   freeform: "#c1652c"
   plot-green: "#4f8f57"
   error-bg: "#fdecea"
@@ -40,6 +43,51 @@ typography:
     fontFamily: "'Courier New', Courier, Menlo, monospace"
     fontSize: "12px"
     fontWeight: 400
+  label-lg:
+    fontFamily: "'Courier New', Courier, Menlo, monospace"
+    fontSize: "12.5px"
+  code:
+    fontFamily: "'Courier New', Courier, Menlo, monospace"
+    fontSize: "13.5px"
+  code-lg:
+    fontFamily: "'Courier New', Courier, Menlo, monospace"
+    fontSize: "14px"
+  wordmark:
+    fontFamily: "'Times New Roman', Times, Georgia, serif"
+    fontSize: "19px"
+    fontWeight: 700
+  docs-display:
+    fontFamily: "'Times New Roman', Times, Georgia, serif"
+    fontSize: "clamp(34px, 5vw, 46px)"
+    fontWeight: 700
+  title-lg:
+    fontFamily: "'Times New Roman', Times, Georgia, serif"
+    fontSize: "21px"
+    fontWeight: 700
+  lead-serif:
+    fontFamily: "'Times New Roman', Times, Georgia, serif"
+    fontSize: "clamp(20px, 2.4vw, 26px)"
+  lead-sans:
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+    fontSize: "16.5px"
+  body-sm:
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+    fontSize: "13.5px"
+  body-md:
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+    fontSize: "14.5px"
+  control:
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+    fontSize: "13px"
+  control-sm:
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+    fontSize: "14px"
+  micro:
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+    fontSize: "11px"
+  micro-plus:
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+    fontSize: "15.5px"
 rounded:
   sm: "3px"
   bar: "7px"
@@ -132,6 +180,11 @@ A white-and-ink document palette with one working blue, one reserved orange, and
 - **Title** (serif 700, 17px to 18px): subsection and reference-column heads; blue in the site's reference card, and the app's Section cell.
 - **Body** (sans 400, 13.5px to 15px, 1.5 to 1.55): prose, facts, dd descriptions. Measure capped around 44 to 62ch.
 - **Label** (mono 400, 12px to 12.5px, Notebook Blue at ~0.85 opacity): In[n]:=/Out[n]= labels, version tags, cta-note metadata, interpreted lines. Code itself is mono at 12.5px to 14px in ink.
+- **Wordmark** (serif 700, 19px): the OpenMat name in app chrome headers.
+- **Docs Display** (serif 700, clamp(34px, 5vw, 46px)): interior page titles (the language reference), deliberately quieter than the masthead.
+- **Lead** (serif clamp(20px, 2.4vw, 26px) for taglines; sans 16.5px for freeform sentences).
+- **Control** (sans 13px to 14.5px): chrome buttons, footers, install notes, reference-table body.
+- **Micro** (sans 11px to 12px): SVG plot tick labels only.
 
 ### Named Rules
 **The Blue Label Rule.** Every In[n]:=/Out[n]= label is Courier mono, 12px, Notebook Blue at reduced opacity, right of nothing and left of the content it numbers. Labels are furniture: user-select is off.

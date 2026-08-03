@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The OpenMat Language</title>
+<meta name="description" content="The complete reference for using OpenMat by hand, exactly like Mathematica: notation, numbers, definitions, lists, algebra, calculus, plotting, and differential equations, with the honest edges of the v0.01 kernel.">
+<style>
+  :root {
+    --paper: #ffffff;
+    --ink: #1a1a1a;
+    --ink-soft: #545454;
+    --ink-faint: #767676;
+    --rule: #c9c9c9;
+    --rule-soft: #e6e6e6;
+    --accent: #3b5fa4;
+    --accent-ink: #ffffff;
+    --accent-soft: #eaf0fa;
+    --font-serif: "Times New Roman", Times, Georgia, serif;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-mono: "Courier New", Courier, Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* App chrome, same grammar as the home page */
+  .chrome {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 22px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .wordmark { font-family: var(--font-serif); font-weight: 700; font-size: 19px; color: var(--ink); }
+  .chrome-actions { display: flex; align-items: center; gap: 8px; }
+  .chrome-button {
+    display: inline-block;
+    font-size: 13px;
+    padding: 5px 13px;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .chrome-button:hover { background: var(--accent-soft); border-color: var(--accent); text-decoration: none; }
+  .chrome-button-primary { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+  .chrome-button-primary:hover { background: #33538f; color: var(--accent-ink); }
+
+  /* The page is a notebook: one column at the app's notebook width. */
+  .notebook { max-width: 860px; margin: 0 auto; padding: 34px 26px 90px; }
+
+  .cell { position: relative; padding-right: 20px; }
+  .cell-bracket::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    right: 0;
+    width: 7px;
+    border-top: 1.5px solid var(--rule);
+    border-right: 1.5px solid var(--rule);
+    border-bottom: 1.5px solid var(--rule);
+    border-radius: 0 3px 3px 0;
+  }
+
+  .cell-title {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: clamp(34px, 5vw, 46px);
+    line-height: 1.05;
+    margin: 10px 0 4px;
+  }
+  .cell-section {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: 27px;
+    color: var(--accent);
+    margin: 40px 0 4px;
+  }
+  .cell-section a { color: inherit; }
+  .cell-text { margin: 12px 0; max-width: 72ch; color: var(--ink); }
+  .cell-text.soft { color: var(--ink-soft); }
+  .cell-text strong { font-weight: 600; }
+  .cell-text code, li code, td code {
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+    background: #f6f6f6;
+    border: 1px solid var(--rule-soft);
+    border-radius: 3px;
+    padding: 0 4px;
+  }
+  .cell-list { margin: 10px 0 14px 22px; max-width: 70ch; color: var(--ink); }
+  .cell-list li { margin-bottom: 7px; }
+  kbd {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    border: 1px solid var(--rule);
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    padding: 1px 5px;
+    background: #fafafa;
+  }
+
+  /* In/Out example groups */
+  .io { margin: 18px 0 22px; }
+  .io-row { display: grid; grid-template-columns: 74px 1fr; column-gap: 8px; padding: 3px 0; }
+  .io-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent);
+    opacity: 0.85;
+    text-align: right;
+    padding-top: 3px;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .io-code {
+    font-family: var(--font-mono);
+    font-size: 13.5px;
+    line-height: 1.55;
+    overflow-x: auto;
+    white-space: pre;
+    padding-bottom: 2px;
+  }
+  .io-out .io-code { color: var(--ink-soft); }
+
+  /* Contents cell */
+  .toc { margin: 20px 0 6px; font-size: 14px; columns: 2; column-gap: 40px; max-width: 620px; }
+  .toc li { margin-bottom: 5px; list-style: none; }
+  .toc li::before { content: "\2022  "; color: var(--rule); }
+
+  /* Reference table */
+  .ref-table { border-collapse: collapse; width: 100%; margin: 14px 0 8px; font-size: 13.5px; }
+  .ref-table th, .ref-table td { text-align: left; padding: 8px 14px 8px 0; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  .ref-table th { font-family: var(--font-serif); font-size: 15px; font-weight: 700; }
+  .ref-table td:first-child { color: var(--ink-soft); white-space: nowrap; }
+
+  .footer {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 26px 40px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    justify-content: space-between;
+  }
+
+  @media (max-width: 560px) {
+    .chrome { padding: 9px 14px; }
+    .notebook { padding: 26px 16px 70px; }
+    .toc { columns: 1; }
+    .io-row { grid-template-columns: 62px 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="chrome">
+  <a class="wordmark" href="/" style="text-decoration:none;">OpenMat</a>
+  <nav class="chrome-actions" aria-label="Project links">
+    <a class="chrome-button" href="/">Home</a>
+    <a class="chrome-button" href="https://github.com/dhve/OpenMat">GitHub</a>
+    <a class="chrome-button chrome-button-primary" href="https://github.com/dhve/OpenMat/releases/download/v0.01/OpenMat_0.1.0_aarch64.dmg">Download for macOS</a>
+  </nav>
+</header>
+
+<main class="notebook">
+
+  <h1 class="cell-title cell cell-bracket">The OpenMat Language</h1>
+
+  <p class="cell-text soft">OpenMat speaks a Wolfram-Language-shaped notation: square brackets apply functions, curly braces build lists, <code>=</code> assigns, <code>==</code> states equations, and capitalized names are built-ins. If you know Mathematica, you already know how to type here. This page documents exactly what the v0.01 kernel understands, so you can use OpenMat entirely by hand, no natural language features required. Every example is real kernel output.</p>
+
+  <ul class="toc">
+    <li><a href="#notebook">The notebook</a></li>
+    <li><a href="#typing">Typing math</a></li>
+    <li><a href="#numbers">Numbers</a></li>
+    <li><a href="#definitions">Variables and functions</a></li>
+    <li><a href="#lists">Lists</a></li>
+    <li><a href="#algebra">Algebra</a></li>
+    <li><a href="#calculus">Calculus</a></li>
+    <li><a href="#plotting">Plotting</a></li>
+    <li><a href="#odes">Differential equations</a></li>
+    <li><a href="#reference">Built-in reference</a></li>
+    <li><a href="#differences">Differences from Mathematica</a></li>
+  </ul>
+
+  <h2 class="cell-section" id="notebook">The notebook</h2>
+  <ul class="cell-list">
+    <li><kbd>Shift</kbd>+<kbd>Enter</kbd> evaluates a cell. <kbd>Enter</kbd> moves to the next cell, or creates one at the end.</li>
+    <li>Evaluated cells get <code>In[n]:=</code> and <code>Out[n]=</code> labels. Errors consume an In number, exactly as in Mathematica.</li>
+    <li>Definitions evaluate silently: <code>f[x_] := x^2</code> produces no Out line, matching Mathematica's Null convention.</li>
+    <li>Click a cell's right-edge bracket to collapse it to its input line; click again to expand.</li>
+    <li>Cell styles: <kbd>Alt</kbd>+<kbd>1</kbd> Title, <kbd>Alt</kbd>+<kbd>4</kbd> Section, <kbd>Alt</kbd>+<kbd>7</kbd> Text, <kbd>Alt</kbd>+<kbd>9</kbd> back to Input.</li>
+    <li>Save and Open in the header store the whole notebook as a file.</li>
+    <li>The kernel session persists across cells: what you define stays defined until <code>Clear</code> or a restart.</li>
+  </ul>
+
+  <h2 class="cell-section" id="typing">Typing math</h2>
+  <p class="cell-text">Input cells are 2D math fields, and Mathematica-style linear syntax typed literally comes out right:</p>
+  <ul class="cell-list">
+    <li><code>Plot[Sin[x], {x, 0, 10}]</code> works as typed: square brackets stay calls, braces stay lists.</li>
+    <li>Consecutive letters form one symbol, as in Mathematica: <code>xy</code> is the symbol xy, not x times y. Multiplication needs a boundary: <code>2x</code>, <code>2 Sin[x]</code>, <code>a*b</code>.</li>
+    <li><code>^</code> starts an exponent; type it and arrow right to come back down.</li>
+    <li><code>=</code> with a plain symbol on the left assigns; with anything else on the left it becomes the equation <code>==</code>. Typing <code>==</code> always means Equal.</li>
+    <li>Primes are derivatives in equations: <code>x''[t]</code> is the second derivative of x.</li>
+    <li>Hover a math cell for the keyboard icon: a full math symbol keyboard with Greek letters, roots, and fractions. A typed integral like <code>&#8747; x&#178; dx</code> translates to <code>Integrate[x^2, x]</code>.</li>
+    <li>Known function names typed with parentheses are accepted: <code>Sin(x)</code> and <code>Plot(...)</code> normalize to bracket form.</li>
+  </ul>
+
+  <h2 class="cell-section" id="numbers">Numbers</h2>
+  <p class="cell-text">Exact values stay exact; the kernel goes numeric only when you ask.</p>
+  <div class="io cell cell-bracket">
+    <div class="io-row io-in"><span class="io-label">In[1]:=</span><span class="io-code">2^10</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[1]=</span><span class="io-code">1024</span></div>
+    <div class="io-row io-in"><span class="io-label">In[2]:=</span><span class="io-code">Sqrt[8]</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[2]=</span><span class="io-code">Sqrt[8]</span></div>
+    <div class="io-row io-in"><span class="io-label">In[3]:=</span><span class="io-code">N[Sqrt[2]]</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[3]=</span><span class="io-code">1.414213562373</span></div>
+    <div class="io-row io-in"><span class="io-label">In[4]:=</span><span class="io-code">0.1 + 0.2</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[4]=</span><span class="io-code">0.3</span></div>
+  </div>
+  <ul class="cell-list">
+    <li><code>N[expr]</code> forces numeric evaluation. <code>Pi</code>, <code>E</code>, and <code>Degree</code> resolve under N; <code>Infinity</code> is recognized symbolically.</li>
+    <li>Floating point noise is cleaned to 12 significant digits, which is why <code>0.1 + 0.2</code> prints 0.3.</li>
+    <li>Exact fractions stay symbolic: rational arithmetic is not folded yet, so <code>1/3 + 1/6</code> stays as written until you apply N.</li>
+  </ul>
+
+  <h2 class="cell-section" id="definitions">Variables and functions</h2>
+  <div class="io cell cell-bracket">
+    <div class="io-row io-in"><span class="io-label">In[1]:=</span><span class="io-code">a = 5</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[1]=</span><span class="io-code">5</span></div>
+    <div class="io-row io-in"><span class="io-label">In[2]:=</span><span class="io-code">a^2 + 1</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[2]=</span><span class="io-code">26</span></div>
+    <div class="io-row io-in"><span class="io-label">In[3]:=</span><span class="io-code">f[x_] := x^2 + 1</span></div>
+    <div class="io-row io-in"><span class="io-label">In[4]:=</span><span class="io-code">f[3]</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[4]=</span><span class="io-code">10</span></div>
+    <div class="io-row io-in"><span class="io-label">In[5]:=</span><span class="io-code">g[x_, y_] := x*y</span></div>
+    <div class="io-row io-in"><span class="io-label">In[6]:=</span><span class="io-code">g[2, 5]</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[6]=</span><span class="io-code">10</span></div>
+  </div>
+  <ul class="cell-list">
+    <li><code>=</code> (Set) evaluates the right side once and assigns. <code>:=</code> (SetDelayed) stores the definition and evaluates at each use, silently.</li>
+    <li><code>x_</code> is a blank pattern: it matches anything and binds it to x. Multiple pattern arguments work.</li>
+    <li>Definitions are visible everywhere, including inside Plot and NDSolve: define <code>f[x_] := x^2</code> in one cell and <code>Plot[f[x], {x, 0, 2}]</code> in the next just works.</li>
+    <li><code>Clear[name]</code> removes a definition.</li>
+  </ul>
+
+  <h2 class="cell-section" id="lists">Lists</h2>
+  <div class="io cell cell-bracket">
+    <div class="io-row io-in"><span class="io-label">In[1]:=</span><span class="io-code">Table[n^2, {n, 1, 5}]</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[1]=</span><span class="io-code">{1, 4, 9, 16, 25}</span></div>
+    <div class="io-row io-in"><span class="io-label">In[2]:=</span><span class="io-code">Range[5]</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[2]=</span><span class="io-code">{1, 2, 3, 4, 5}</span></div>
+    <div class="io-row io-in"><span class="io-label">In[3]:=</span><span class="io-code">Length[{1, 2, 3}]</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[3]=</span><span class="io-code">3</span></div>
+    <div class="io-row io-in"><span class="io-label">In[4]:=</span><span class="io-code">Map[f, {1, 2}]</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[4]=</span><span class="io-code">{f[1], f[2]}</span></div>
+  </div>
+  <p class="cell-text">Arithmetic does not yet thread over lists: <code>{1, 2} + {10, 20}</code> stays unevaluated. Use Table to build element-wise results.</p>
+
+  <h2 class="cell-section" id="algebra">Algebra</h2>
+  <div class="io cell cell-bracket">
+    <div class="io-row io-in"><span class="io-label">In[1]:=</span><span class="io-code">Expand[(x + 1)^2]</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[1]=</span><span class="io-code">1 + 2*x + x^2</span></div>
+    <div class="io-row io-in"><span class="io-label">In[2]:=</span><span class="io-code">Factor[x^2 - 1]</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[2]=</span><span class="io-code">(-1 + x)*(1 + x)</span></div>
+    <div class="io-row io-in"><span class="io-label">In[3]:=</span><span class="io-code">Solve[x^2 - 5*x + 6 == 0, x]</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[3]=</span><span class="io-code">{{x -> 2}, {x -> 3}}</span></div>
+    <div class="io-row io-in"><span class="io-label">In[4]:=</span><span class="io-code">Solve[x^2 - 2 == 0, x]</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[4]=</span><span class="io-code">{{x -> -Sqrt[2]}, {x -> Sqrt[2]}}</span></div>
+  </div>
+  <ul class="cell-list">
+    <li>Solve handles polynomial equations up through quadratics and returns exact roots as replacement rules.</li>
+    <li>Simplify performs basic structural simplification; it does not yet know trig identities, so <code>Simplify[Sin[x]^2 + Cos[x]^2]</code> stays as written.</li>
+  </ul>
+
+  <h2 class="cell-section" id="calculus">Calculus</h2>
+  <div class="io cell cell-bracket">
+    <div class="io-row io-in"><span class="io-label">In[1]:=</span><span class="io-code">D[Sin[x]*x, x]</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[1]=</span><span class="io-code">Cos[x]*x + Sin[x]</span></div>
+    <div class="io-row io-in"><span class="io-label">In[2]:=</span><span class="io-code">Integrate[x^2, x]</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[2]=</span><span class="io-code">x^3/3</span></div>
+    <div class="io-row io-in"><span class="io-label">In[3]:=</span><span class="io-code">Integrate[2*Sin[2*Pi*x]^2, {x, 0, 1}]</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[3]=</span><span class="io-code">1.</span></div>
+    <div class="io-row io-in"><span class="io-label">In[4]:=</span><span class="io-code">Integrate[Exp[-x^2/2], {x, 0, 1}]</span></div>
+    <div class="io-row io-out"><span class="io-label">Out[4]=</span><span class="io-code">0.855624391892</span></div>
+  </div>
+  <ul class="cell-list">
+    <li><code>D[f, x]</code> differentiates with the product, quotient, chain, and power rules.</li>
+    <li><code>Integrate[f, x]</code> knows the standard table: powers, 1/x to Log, Sin, Cos, Exp, linear substitutions, and polynomial expansion. Sine and cosine squares reduce by double-angle rules, and products like <code>Sin[2*Pi*x]*Sin[Pi*x]</code> go through product-to-sum, which is what makes normalization and orthogonality integrals come out exact.</li>
+    <li>Definite integrals evaluate the antiderivative difference; when no closed form exists but the bounds are numeric, the kernel falls back to numerical quadrature rather than giving up.</li>
+  </ul>
+
+  <h2 class="cell-section" id="plotting">Plotting</h2>
+  <div class="io cell cell-bracket">
+    <div class="io-row io-in"><span class="io-label">In[1]:=</span><span class="io-code">Plot[Sin[x], {x, 0, 10}]</span></div>
+    <div class="io-row io-in"><span class="io-label">In[2]:=</span><span class="io-code">Plot[{Sin[x], Cos[x]}, {x, 0, 2*Pi}]</span></div>
+    <div class="io-row io-in"><span class="io-label">In[3]:=</span><span class="io-code">Plot[Tan[x], {x, -4, 4}]</span></div>
+    <div class="io-row io-in"><span class="io-label">In[4]:=</span><span class="io-code">ListPlot[{{1, 2}, {2, 4}, {3, 9}}]</span></div>
+  </div>
+  <ul class="cell-list">
+    <li>Plot samples adaptively: it refines where the curve bends and detects poles, so Tan renders as separate branches instead of vertical lines through the asymptotes.</li>
+    <li>Multiple expressions in a list get separate curves and a legend.</li>
+    <li>ListPlot draws discrete points, from plain values (x becomes 1, 2, 3, ...) or {x, y} pairs.</li>
+    <li>Session definitions resolve inside plots: <code>data = Table[n^2, {n, 1, 8}]</code> then <code>ListPlot[data]</code> works.</li>
+  </ul>
+
+  <h2 class="cell-section" id="odes">Differential equations</h2>
+  <div class="io cell cell-bracket">
+    <div class="io-row io-in"><span class="io-label">In[1]:=</span><span class="io-code">NDSolve[{x'[t] == -x[t], x[0] == 1}, x, {t, 0, 5}]</span></div>
+    <div class="io-row io-in"><span class="io-label">In[2]:=</span><span class="io-code">NDSolve[{x''[t] + 0.3*x'[t] + Sin[x[t]] == 0, x[0] == 2, x'[0] == 0}, x, {t, 0, 20}]</span></div>
+  </div>
+  <ul class="cell-list">
+    <li>NDSolve solves scalar first and second order ODEs numerically and plots the trajectory.</li>
+    <li>Write the equation with <code>==</code>, give initial conditions as <code>x[0] == value</code> (and <code>x'[0] == value</code> for second order), name the unknown function, and give the range <code>{t, t0, t1}</code>.</li>
+    <li>Second order equations must be linear in the highest derivative; any textbook form qualifies.</li>
+    <li>The desktop build integrates with SUNDIALS CVODE; the browser build uses a pure Rust Dormand-Prince RK5(4). Same input, same answer.</li>
+    <li>Cells with a parameter slider, like the damped pendulum demo, re-solve live as the slider moves.</li>
+  </ul>
+
+  <h2 class="cell-section" id="reference">Built-in reference</h2>
+  <table class="ref-table">
+    <tr><th>Area</th><th>Names</th></tr>
+    <tr><td>Trigonometric</td><td><code>Sin</code> <code>Cos</code> <code>Tan</code> <code>Cot</code> <code>Sec</code> <code>Csc</code> <code>ArcSin</code> <code>ArcCos</code> <code>ArcTan</code> <code>Sinh</code> <code>Cosh</code> <code>Tanh</code></td></tr>
+    <tr><td>Exponential</td><td><code>Exp</code> <code>Log</code> <code>Sqrt</code> <code>Abs</code></td></tr>
+    <tr><td>Numeric</td><td><code>N</code> <code>Floor</code> <code>Ceiling</code> <code>Round</code> <code>Min</code> <code>Max</code></td></tr>
+    <tr><td>Constants</td><td><code>Pi</code> <code>E</code> <code>Degree</code> <code>Infinity</code></td></tr>
+    <tr><td>Structure</td><td><code>{...}</code> <code>Table</code> <code>Range</code> <code>Length</code> <code>Map</code></td></tr>
+    <tr><td>Definitions</td><td><code>=</code> <code>:=</code> <code>Clear</code>, patterns <code>x_</code></td></tr>
+    <tr><td>Algebra</td><td><code>Expand</code> <code>Factor</code> <code>Simplify</code> <code>Solve</code></td></tr>
+    <tr><td>Calculus</td><td><code>D</code> <code>Integrate</code> (indefinite and definite)</td></tr>
+    <tr><td>Numerics and graphics</td><td><code>Plot</code> <code>ListPlot</code> <code>NDSolve</code></td></tr>
+    <tr><td>Relations and rules</td><td><code>==</code> <code>-&gt;</code></td></tr>
+  </table>
+
+  <h2 class="cell-section" id="differences">Where OpenMat differs from Mathematica today</h2>
+  <p class="cell-text">Honest edges of the v0.01 kernel, so nothing surprises you:</p>
+  <ul class="cell-list">
+    <li>Solve stops at quadratics; cubics and beyond stay unevaluated.</li>
+    <li>NDSolve handles one scalar equation, first or second order. No coupled systems yet.</li>
+    <li>Simplify is structural only; trig identities and radical simplification are not applied.</li>
+    <li>No <code>%</code> output history, no <code>/.</code> ReplaceAll operator, no Sum or Product evaluation, no strings-and-formatting layer.</li>
+    <li>Arithmetic does not thread over lists.</li>
+    <li>Exact rational arithmetic is preserved but not folded: <code>1/3 + 1/6</code> stays symbolic; apply N for a decimal.</li>
+    <li>Unknown functions stay symbolic rather than erroring, exactly as in Mathematica: <code>h[2]</code> evaluates to <code>h[2]</code> until h gets a definition.</li>
+  </ul>
+  <p class="cell-text soft">Everything above works today, in the desktop app and in the browser build, on the same Rust kernel. This page tracks the shipped kernel; when the kernel grows, so does this page.</p>
+
+</main>
+
+<footer class="footer">
+  <p>Dual-licensed under MIT or Apache-2.0.</p>
+  <nav style="display:flex; gap:18px;" aria-label="Footer links">
+    <a href="/">openmat.tools</a>
+    <a href="https://github.com/dhve/OpenMat/blob/main/docs/language.md">This page as Markdown</a>
+    <a href="https://github.com/dhve/OpenMat">GitHub</a>
+  </nav>
+</footer>
+
+</body>
+</html>
