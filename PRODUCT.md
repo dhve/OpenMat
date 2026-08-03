@@ -25,7 +25,9 @@ Students, educators, and developers who want Mathematica's notebook experience w
 - Repo: https://github.com/dhve/OpenMat
 - Release: v0.01, dmg at https://github.com/dhve/OpenMat/releases/download/v0.01/OpenMat_0.1.0_aarch64.dmg
 - License: dual MIT / Apache-2.0
-- Tagline: "Mathematica, rebuilt in Rust, fluent in English."
+- Site: https://openmat.tools
+- Tagline: "The open-source, local-first, AI-native alternative to Mathematica."
+- Positioning: the three pillars are open source (MIT/Apache, kernel included), local-first (kernel runs on the user's machine, no server, notebooks stay local), and AI-native (natural language as a built-in input mode, user's own key or fully local model). "AI-native" is brand language for marketing surfaces; inside the product the feature is still called natural language input.
 
 ## Brand commitments
 

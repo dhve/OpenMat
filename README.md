@@ -1,6 +1,10 @@
 # OpenMat
 
-A fully open-source variant of Wolfram Mathematica: a WL-shaped language kernel in Rust, a numeric solving layer, and a desktop notebook with structural 2D math input and live Manipulate-style interactivity.
+**The open-source, local-first, AI-native alternative to Mathematica.**
+
+Website: [openmat.tools](https://openmat.tools)
+
+A WL-shaped language kernel in Rust, a numeric solving layer, and a desktop notebook with structural 2D math input and live Manipulate-style interactivity. The whole stack runs on your machine (in-process on desktop, WebAssembly in the browser), and natural language is a first-class input: one sentence writes and evaluates a whole notebook, with your own API key or a fully local model.
 
 Status: pre-M0, in active development. The first release gate is the flagship demo: open the Damped Pendulum notebook, edit the equation in 2D input, drag the damping slider, and watch the ODE re-solve and re-render live. See [specs/m0-milestone.md](specs/m0-milestone.md) for the authoritative scope and acceptance criteria.
 

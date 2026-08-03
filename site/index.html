@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OpenMat: Mathematica, rebuilt in Rust, fluent in English</title>
-<meta name="description" content="OpenMat is an open-source Mathematica-style notebook: a Rust symbolic kernel, live Manipulate sliders, and natural language input that writes whole notebooks. Desktop via Tauri, browser via WebAssembly.">
+<title>OpenMat: the open-source, local-first, AI-native alternative to Mathematica</title>
+<meta name="description" content="OpenMat is the open-source, local-first, AI-native alternative to Mathematica: a Rust symbolic kernel that runs on your machine, live Manipulate sliders, and one sentence that writes a whole notebook. Your key or a fully local model; nothing leaves your laptop.">
 <style>
   :root {
     --paper: #ffffff;
@@ -144,6 +144,7 @@
     max-width: 52ch;
   }
   .masthead-facts p + p { margin-top: 7px; }
+  .masthead-facts strong { color: var(--ink); font-weight: 600; }
   .masthead-cta { margin-top: 26px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
   .cta-primary {
     display: inline-block;
@@ -450,10 +451,11 @@ finish review, the verdict, and DESIGN.md.
   <section class="masthead">
     <div>
       <h1 class="masthead-title">OpenMat</h1>
-      <p class="masthead-sub">Mathematica, rebuilt in Rust, fluent in English.</p>
+      <p class="masthead-sub">The open-source, local-first, AI-native alternative to Mathematica.</p>
       <div class="masthead-facts">
-        <p>An open-source notebook that keeps the Mathematica experience: 2D math input, typeset output, In and Out numbering, and Manipulate sliders that re-solve live as you drag.</p>
-        <p>One symbolic kernel, written in Rust, runs in-process on the desktop and compiles to a 530&nbsp;KB WebAssembly module for the browser. Same engine, everywhere.</p>
+        <p><strong>Open source.</strong> The whole notebook, kernel included, under MIT or Apache-2.0. Read it, fork it, own it.</p>
+        <p><strong>Local-first.</strong> The Rust symbolic kernel runs on your machine: in-process on desktop, as a 530&nbsp;KB WebAssembly module in the browser. No server, and your notebooks never leave your laptop.</p>
+        <p><strong>AI-native.</strong> Natural language is an input mode, not a plugin: type a sentence and a full notebook writes and evaluates itself, using your own API key or a completely local model. Nobody has shipped this combination before.</p>
       </div>
       <div class="masthead-cta">
         <a class="cta-primary" href="https://github.com/dhve/OpenMat/releases/download/v0.01/OpenMat_0.1.0_aarch64.dmg">Download for macOS</a>
