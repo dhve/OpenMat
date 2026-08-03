@@ -10,7 +10,7 @@
     --paper: #ffffff;
     --ink: #1a1a1a;
     --ink-soft: #545454;
-    --ink-faint: #9a9a9a;
+    --ink-faint: #767676;
     --rule: #c9c9c9;
     --rule-soft: #e6e6e6;
     --accent: #3b5fa4;
@@ -381,7 +381,9 @@
     align-items: baseline;
     justify-content: space-between;
     gap: 10px;
-    padding: 26px 0 8px;
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 26px 26px 40px;
     font-size: 13px;
     color: var(--ink-soft);
   }
@@ -408,6 +410,7 @@
     .chrome { padding: 9px 14px; }
     .chrome-tag { display: none; }
     .sheet { padding: 0 16px 32px; }
+    .footer { padding: 20px 16px 32px; }
   }
 </style>
 </head>
@@ -449,7 +452,7 @@ finish review, the verdict, and DESIGN.md.
       <p class="masthead-sub">Mathematica, rebuilt in Rust, fluent in English.</p>
       <div class="masthead-facts">
         <p>An open-source notebook that keeps the Mathematica experience: 2D math input, typeset output, In and Out numbering, and Manipulate sliders that re-solve live as you drag.</p>
-        <p>One symbolic kernel, written in Rust, runs in-process on the desktop and compiles to a 500&nbsp;KB WebAssembly module for the browser. Same engine, everywhere.</p>
+        <p>One symbolic kernel, written in Rust, runs in-process on the desktop and compiles to a 530&nbsp;KB WebAssembly module for the browser. Same engine, everywhere.</p>
       </div>
       <div class="masthead-cta">
         <a class="cta-primary" href="https://github.com/dhve/OpenMat/releases/download/v0.01/OpenMat_0.1.0_aarch64.dmg">Download for macOS</a>
@@ -458,7 +461,7 @@ finish review, the verdict, and DESIGN.md.
       </div>
     </div>
 
-    <div class="sentence-demo cell cell-bracket" aria-label="Natural language example">
+    <div class="sentence-demo cell cell-bracket" role="figure" aria-label="Natural language example, illustrative">
       <div class="freeform-row">
         <span class="freeform-marker" aria-hidden="true">=</span>
         <p class="freeform-text">make me a notebook exploring the damped pendulum with a slider for the damping<span class="freeform-caret" aria-hidden="true"></span></p>
@@ -566,16 +569,16 @@ npm run dev         <span class="c"># browser, same kernel</span></pre>
     </div>
   </section>
 
-  <footer class="footer">
-    <p><span class="out-label">Out[3]=</span>Dual-licensed under MIT or Apache-2.0. The notebook output shown on this page is real kernel output.</p>
-    <nav class="footer-links" aria-label="Footer links">
-      <a href="https://github.com/dhve/OpenMat">GitHub</a>
-      <a href="https://github.com/dhve/OpenMat/releases/tag/v0.01">v0.01 release</a>
-      <a href="https://github.com/dhve/OpenMat/blob/main/ARCHITECTURE.md">Architecture</a>
-    </nav>
-  </footer>
-
 </main>
+
+<footer class="footer">
+  <p><span class="out-label">Out[3]=</span>Dual-licensed under MIT or Apache-2.0. The plot above is recomputed by this page; in the app, the same expression evaluates through the Rust kernel.</p>
+  <nav class="footer-links" aria-label="Footer links">
+    <a href="https://github.com/dhve/OpenMat">GitHub</a>
+    <a href="https://github.com/dhve/OpenMat/releases/tag/v0.01">v0.01 release</a>
+    <a href="https://github.com/dhve/OpenMat/blob/main/ARCHITECTURE.md">Architecture</a>
+  </nav>
+</footer>
 
 <script>
   // The live cell: e^(-c t) cos(2 pi t) over t in [0, 8], redrawn per tick.

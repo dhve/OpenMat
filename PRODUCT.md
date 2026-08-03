@@ -2,7 +2,7 @@
 
 ## What it is
 
-A fully open-source variant of Wolfram Mathematica: a WL-shaped symbolic kernel written in Rust, a Mathematica-style desktop notebook (Tauri), and the same kernel compiled to WebAssembly for the browser. Natural language is a first-class input: one sentence can generate a whole evaluated notebook.
+A fully open-source variant of Wolfram Mathematica: a WL-shaped symbolic kernel written in Rust, a Mathematica-style desktop notebook (Tauri), and the same kernel compiled to WebAssembly (530 KB) for the browser. Natural language is a first-class input: one sentence can generate a whole evaluated notebook.
 
 ## Unique mechanism
 
